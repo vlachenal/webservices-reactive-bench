@@ -1,0 +1,10 @@
+build/
+.classpath
+.gradle/
+.project
+.settings/
+WEB-INF/
+bin/
+**/*~
+/.apt_generated/
+.factorypath
