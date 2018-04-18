@@ -1,0 +1,94 @@
+buildscript {
+    ext {
+        springBootVersion = '2.0.1.RELEASE'
+    }
+    repositories {
+        jcenter()
+        mavenCentral()
+        maven { url "https://plugins.gradle.org/m2/" }
+    }
+    dependencies {
+        classpath("org.springframework.boot:spring-boot-gradle-plugin:${springBootVersion}")
+        classpath("net.ltgt.gradle:gradle-apt-plugin:0.14")
+    }
+}
+
+apply plugin: 'java'
+apply plugin: 'eclipse-wtp'
+apply plugin: 'idea'
+apply plugin: 'org.springframework.boot'
+apply plugin: 'io.spring.dependency-management'
+apply plugin: 'war'
+apply plugin: 'net.ltgt.apt'
+
+war {
+    enabled = true
+}
+
+ext {
+    mapstructVersion = "1.2.0.Final"
+}
+
+configurations {
+    mapstruct
+}
+
+eclipse {
+    wtp {
+        facet {
+            facet name: 'jst.java', version: '9'
+            facet name: 'jst.web', version: '3.1'
+            def oldJstWebFacet = facets.findAll {
+                it.name == 'jst.web' && it.version == '2.4' || it.name == 'jst.java' && it.version == '1.8' || it.name == 'jst.java' && it.version == '1.9'
+            }
+            facets.removeAll(oldJstWebFacet)
+        }
+    }
+}
+
+jar {
+    baseName = 'webservices-reactive-bench'
+    version =  '0.1.0'
+}
+
+repositories {
+    mavenCentral()
+}
+
+sourceCompatibility = 9
+targetCompatibility = 9
+
+allprojects {
+    sourceCompatibility = 9
+    eclipse.project {
+        natures 'org.eclipse.buildship.core.gradleprojectnature'
+    }
+    // Allows to run JUnit tests in Eclipse and have compilation warning for Mapstruct +
+    project.plugins.withId("net.ltgt.apt") {
+        // automatically apply net.ltgt.apt-eclipse whenever net.ltgt.apt is used
+        project.apply plugin: "net.ltgt.apt-eclipse"
+    }
+    // Allows to run JUnit tests in Eclipse and have compilation warning for Mapstruct -
+}
+
+tasks.withType(JavaCompile) {
+    options.compilerArgs = [
+            '-Amapstruct.suppressGeneratorTimestamp=true'
+    ]
+}
+
+dependencies {
+    // REST
+    compile 'org.springframework.boot:spring-boot-starter-webflux'
+    compile 'io.springfox:springfox-swagger2:2.8.0'
+    compile 'io.springfox:springfox-swagger-ui:2.8.0'
+    // SQL
+    compile 'org.springframework.boot:spring-boot-starter-jdbc'
+    compile 'org.postgresql:postgresql:42.2.2'
+    // MapStruct
+    compile "org.mapstruct:mapstruct-jdk8:${mapstructVersion}"
+    annotationProcessor "org.mapstruct:mapstruct-processor:${mapstructVersion}"
+    // tests
+    testCompile 'org.springframework.boot:spring-boot-starter-test'
+    testCompile 'io.projectreactor:reactor-test'
+}
