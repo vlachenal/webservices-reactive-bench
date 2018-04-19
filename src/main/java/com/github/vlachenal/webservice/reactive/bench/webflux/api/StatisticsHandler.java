@@ -6,12 +6,19 @@
  */
 package com.github.vlachenal.webservice.reactive.bench.webflux.api;
 
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.util.UUID;
+
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
+import org.springframework.web.reactive.function.BodyInserters;
 import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.reactive.function.server.ServerResponse;
 
 import com.github.vlachenal.webservice.reactive.bench.dao.StatisticsDAO;
 import com.github.vlachenal.webservice.reactive.bench.mapping.mapstruct.MapStructMappers;
+import com.github.vlachenal.webservice.reactive.bench.rest.api.dto.ClientCall;
 import com.github.vlachenal.webservice.reactive.bench.rest.api.dto.TestSuite;
 
 import reactor.core.publisher.Mono;
@@ -57,8 +64,14 @@ public class StatisticsHandler {
    * @return the response
    */
   public Mono<ServerResponse> create(final ServerRequest request) {
-    dao.save(request.bodyToMono(TestSuite.class).blockOptional().map(mapstruct.suite()::fromRest).get());
-    return ServerResponse.ok().build(); // TODO created with path in header ...
+    final String id = dao.save(request.bodyToMono(TestSuite.class).blockOptional().map(mapstruct.suite()::fromRest).get());
+    URI uri = null;
+    try {
+      uri = new URI("webflux/customer/" + id);
+    } catch(final URISyntaxException e) {
+      return ServerResponse.status(HttpStatus.INTERNAL_SERVER_ERROR).body(BodyInserters.fromObject("Can not convert URI ..."));
+    }
+    return ServerResponse.created(uri).body(BodyInserters.fromObject(id));
   }
 
   /**
@@ -69,9 +82,15 @@ public class StatisticsHandler {
    * @return the response
    */
   public Mono<ServerResponse> addCalls(final ServerRequest request) {
-    dao.save(null);
-    mapstruct.address();
-    return null;
+    final String statId = request.pathVariable("id");
+    UUID uuid = null;
+    try {
+      uuid = UUID.fromString(request.pathVariable("id"));
+    } catch(final IllegalArgumentException e) {
+      return ServerResponse.badRequest().body(BodyInserters.fromObject("Invalid UUID: " + statId));
+    }
+    dao.registerCalls(uuid, request.bodyToFlux(ClientCall.class).map(mapstruct.call()::fromRest));
+    return ServerResponse.ok().build();
   }
   // Methods -
 

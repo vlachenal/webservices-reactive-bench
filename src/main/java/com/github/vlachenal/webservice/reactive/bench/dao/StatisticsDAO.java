@@ -13,11 +13,14 @@ import javax.sql.DataSource;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.github.vlachenal.webservice.reactive.bench.dto.CallDTO;
 import com.github.vlachenal.webservice.reactive.bench.dto.TestSuiteDTO;
+import com.github.vlachenal.webservice.reactive.bench.jdbc.ReactiveJdbcTemplate;
+
+import reactor.core.publisher.Flux;
 
 
 /**
@@ -42,7 +45,7 @@ public class StatisticsDAO {
       + "VALUES (?,?,?,?,?,?,?,?,?)";
 
   /** JDBC template */
-  private JdbcTemplate jdbc;
+  private ReactiveJdbcTemplate jdbc;
   // Attributes -
 
 
@@ -54,49 +57,63 @@ public class StatisticsDAO {
    */
   @Autowired
   public void setDataSource(@Qualifier("ds.customer") final DataSource dataSource) {
-    jdbc = new JdbcTemplate(dataSource);
+    jdbc = new ReactiveJdbcTemplate(dataSource);
   }
 
   /**
    * Save test suite in database
    *
    * @param testSuite the test suite to save
+   *
+   * @return the test suite UUID
    */
   @Transactional
-  public void save(final TestSuiteDTO testSuite) {
-    Optional.ofNullable(testSuite).ifPresent(test -> {
-      final UUID uuid = UUID.randomUUID();
-      jdbc.update(INS_TEST_SUITE, ps -> {
-        ps.setObject(1, uuid);
-        ps.setString(2, test.getClientCpu());
-        ps.setString(3, test.getClientMemory());
-        ps.setString(4, test.getClientJvmVersion());
-        ps.setString(5, test.getClientJvmVendor());
-        ps.setString(6, test.getClientOsName());
-        ps.setString(7, test.getClientOsVersion());
-        ps.setString(8, test.getServerCpu());
-        ps.setString(9, test.getServerMemory());
-        ps.setString(10, test.getServerJvmVersion());
-        ps.setString(11, test.getServerJvmVendor());
-        ps.setString(12, test.getServerOsName());
-        ps.setString(13, test.getServerOsVersion());
-        ps.setString(14, test.getProtocol());
-        ps.setString(15, test.getCompression());
-        ps.setInt(16, test.getNbThreads());
-        ps.setString(17, test.getComment());
-        ps.setString(18, test.getMapper());
-      });
-      jdbc.batchUpdate(INS_TEST_CALL, test.getCalls(), test.getCalls().size(), (ps, call) -> {
-        ps.setInt(1, call.getSeq());
-        ps.setObject(2, uuid);
-        ps.setString(3, call.getMethod());
-        ps.setLong(4, call.getClientStart());
-        ps.setLong(5, call.getServerStart());
-        ps.setLong(6, call.getServerEnd());
-        ps.setLong(7, call.getClientEnd());
-        ps.setBoolean(8, call.isOk());
-        ps.setString(9, call.getErrMsg());
-      });
+  public String save(final TestSuiteDTO testSuite) {
+    final UUID uuid = UUID.randomUUID();
+    jdbc.update(INS_TEST_SUITE, ps -> {
+      ps.setObject(1, uuid);
+      ps.setString(2, testSuite.getClientCpu());
+      ps.setString(3, testSuite.getClientMemory());
+      ps.setString(4, testSuite.getClientJvmVersion());
+      ps.setString(5, testSuite.getClientJvmVendor());
+      ps.setString(6, testSuite.getClientOsName());
+      ps.setString(7, testSuite.getClientOsVersion());
+      ps.setString(8, testSuite.getServerCpu());
+      ps.setString(9, testSuite.getServerMemory());
+      ps.setString(10, testSuite.getServerJvmVersion());
+      ps.setString(11, testSuite.getServerJvmVendor());
+      ps.setString(12, testSuite.getServerOsName());
+      ps.setString(13, testSuite.getServerOsVersion());
+      ps.setString(14, testSuite.getProtocol());
+      ps.setString(15, testSuite.getCompression());
+      ps.setInt(16, testSuite.getNbThreads());
+      ps.setString(17, testSuite.getComment());
+      ps.setString(18, testSuite.getMapper());
+    });
+    Optional.ofNullable(testSuite.getCalls()).ifPresent(calls -> {
+      registerCalls(uuid, Flux.fromIterable(calls));
+    });
+    return uuid.toString();
+  }
+
+  /**
+   * Register calls to test suite
+   *
+   * @param uuid the test suite UUID
+   * @param calls the calls to register
+   */
+  @Transactional
+  public void registerCalls(final UUID uuid, final Flux<CallDTO> calls) {
+    jdbc.batchUpdate(INS_TEST_CALL, calls, 250, (ps, call) -> {
+      ps.setInt(1, call.getSeq());
+      ps.setObject(2, uuid);
+      ps.setString(3, call.getMethod());
+      ps.setLong(4, call.getClientStart());
+      ps.setLong(5, call.getServerStart());
+      ps.setLong(6, call.getServerEnd());
+      ps.setLong(7, call.getClientEnd());
+      ps.setBoolean(8, call.isOk());
+      ps.setString(9, call.getErrMsg());
     });
   }
   // Methods -
