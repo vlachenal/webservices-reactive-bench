@@ -6,15 +6,11 @@
  */
 package com.github.vlachenal.webservice.reactive.bench.rest.api.dto;
 
-import io.swagger.annotations.ApiModel;
-import io.swagger.annotations.ApiModelProperty;
-
 /**
  * Phone number
  *
  * @author Vincent Lachenal
  */
-@ApiModel(description="Customer's phone")
 public class Phone {
 
   /**
@@ -29,11 +25,9 @@ public class Phone {
 
   // Attributes +
   /** Phone type */
-  @ApiModelProperty(notes="Phone type (LANDLINE or MOBILE)")
   private Type type;
 
   /** Phone number */
-  @ApiModelProperty(notes="Phone number")
   private String number;
   // Attributes -
 

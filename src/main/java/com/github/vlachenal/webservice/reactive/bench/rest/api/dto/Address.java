@@ -10,36 +10,28 @@ import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-import io.swagger.annotations.ApiModel;
-import io.swagger.annotations.ApiModelProperty;
-
 
 /**
  * Address
  *
  * @author Vincent Lachenal
  */
-@ApiModel(description="Customer's address")
 public class Address {
 
   // Attributes +
   /** Address lines */
-  @ApiModelProperty(notes="Address lines",required=true)
   @JsonProperty(value="lines",required=true)
   private List<String> lines;
 
   /** Address ZIP code */
-  @ApiModelProperty(notes="ZIP code",required=true)
   @JsonProperty(value="zip_code",required=true)
   private String zipCode;
 
   /** City */
-  @ApiModelProperty(notes="City",required=true)
   @JsonProperty(value="city",required=true)
   private String city;
 
   /** Country */
-  @ApiModelProperty(notes="Country",required=true)
   @JsonProperty(value="country",required=true)
   private String country;
   // Attributes -
