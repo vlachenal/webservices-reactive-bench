@@ -8,6 +8,7 @@ package com.github.vlachenal.webservice.reactive.bench.webflux;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.web.reactive.config.EnableWebFlux;
 import org.springframework.web.reactive.config.WebFluxConfigurer;
@@ -39,9 +40,11 @@ public class WebfluxRouter implements WebFluxConfigurer {
   @Bean
   public RouterFunction<ServerResponse> routeCustomer(final CustomerHandler handler) {
     return RouterFunctions.route(RequestPredicates.GET("/webflux/customer/{id}").and(RequestPredicates.accept(MediaType.APPLICATION_JSON_UTF8)), handler::get)
-        .andRoute(RequestPredicates.GET("/webflux/customer").and(RequestPredicates.accept(MediaType.APPLICATION_JSON_UTF8)), handler::list)
-        .andRoute(RequestPredicates.POST("/webflux/customer").and(RequestPredicates.contentType(MediaType.APPLICATION_JSON_UTF8)).and(RequestPredicates.accept(MediaType.TEXT_PLAIN)), handler::create)
-        .andRoute(RequestPredicates.DELETE("/webflux/customer"), handler::delete);
+        .andNest(RequestPredicates.path("/webflux/customer"),
+                 RouterFunctions.route(RequestPredicates.method(HttpMethod.GET).and(RequestPredicates.accept(MediaType.APPLICATION_JSON_UTF8)), handler::list)
+                 .andRoute(RequestPredicates.method(HttpMethod.POST).and(RequestPredicates.contentType(MediaType.APPLICATION_JSON_UTF8)).and(RequestPredicates.accept(MediaType.TEXT_PLAIN)), handler::create)
+                 .andRoute(RequestPredicates.method(HttpMethod.DELETE), handler::delete)
+            );
   }
 
   /**
