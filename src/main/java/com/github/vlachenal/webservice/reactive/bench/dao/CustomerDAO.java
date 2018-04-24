@@ -9,20 +9,21 @@ package com.github.vlachenal.webservice.reactive.bench.dao;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.stream.Stream;
 
 import javax.sql.DataSource;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.github.vlachenal.webservice.reactive.bench.dto.AddressDTO;
 import com.github.vlachenal.webservice.reactive.bench.dto.CustomerDTO;
 import com.github.vlachenal.webservice.reactive.bench.dto.PhoneDTO;
+import com.github.vlachenal.webservice.reactive.bench.jdbc.ReactiveJdbcTemplate;
+
+import reactor.core.publisher.Flux;
 
 
 /**
@@ -34,7 +35,7 @@ import com.github.vlachenal.webservice.reactive.bench.dto.PhoneDTO;
 public class CustomerDAO {
 
   // Attributes +
-  // SQL request +
+  // SQL requests +
   /** List all customer SQL request */
   private static final String REQ_LIST_ALL = "SELECT id,first_name,last_name FROM Customer";
 
@@ -68,10 +69,10 @@ public class CustomerDAO {
   /** Vacuum requests */
   @Value("${ds.customer.vacuum}")
   private String vacuumReqs;
-  // SQL request -
+  // SQL requests -
 
   /** JDBC template */
-  private JdbcTemplate jdbc;
+  private ReactiveJdbcTemplate jdbc;
   // Attributes -
 
 
@@ -83,7 +84,7 @@ public class CustomerDAO {
    */
   @Autowired
   public void setDataSource(@Qualifier("ds.customer") final DataSource dataSource) {
-    jdbc = new JdbcTemplate(dataSource);
+    jdbc = new ReactiveJdbcTemplate(dataSource);
   }
 
   /**
@@ -91,8 +92,8 @@ public class CustomerDAO {
    *
    * @return the customers' stream
    */
-  public Stream<CustomerDTO> stream() {
-    return jdbc.query(REQ_LIST_ALL, (rs, rowNum) -> new CustomerDTO(rs.getObject(1, UUID.class), rs.getString(2), rs.getString(3))).stream();
+  public Flux<CustomerDTO> listAll() {
+    return jdbc.queryForFlux(REQ_LIST_ALL, (rs, rowNum) -> new CustomerDTO(rs.getObject(1, UUID.class), rs.getString(2), rs.getString(3)));
   }
 
   /**
@@ -114,10 +115,8 @@ public class CustomerDAO {
                                                                                              rs.getString(3),
                                                                                              rs.getString(4),
                                                                                              rs.getString(5),
-                                                                                             rs.getString(6)), id))
-                      .orElse(null));
-      cust.setPhones(Optional.ofNullable(jdbc.query(REQ_GET_CUST_PHONES, (rs, rowNum) -> new PhoneDTO(rs.getShort(1), rs.getString(2)), id))
-                     .orElse(null));
+                                                                                             rs.getString(6)), id)).orElse(null));
+      cust.setPhones(Optional.ofNullable(jdbc.query(REQ_GET_CUST_PHONES, (rs, rowNum) -> new PhoneDTO(rs.getShort(1), rs.getString(2)), id)).orElse(null));
     });
     return customer;
   }
@@ -157,22 +156,21 @@ public class CustomerDAO {
     });
     if(customer.getAddress() != null) {
       final AddressDTO address = customer.getAddress();
-      final List<String> lines = address.getLines();
       jdbc.update(ADD_ADDRESS, new Object[] {
         uuid,
-        getLine(lines,0),
-        getLine(lines,1),
-        getLine(lines,2),
-        getLine(lines,3),
-        getLine(lines,4),
-        getLine(lines,5),
+        getLine(customer.getAddress().getLines(),0),
+        getLine(customer.getAddress().getLines(),1),
+        getLine(customer.getAddress().getLines(),2),
+        getLine(customer.getAddress().getLines(),3),
+        getLine(customer.getAddress().getLines(),4),
+        getLine(customer.getAddress().getLines(),5),
         address.getZipCode(),
         address.getCity(),
         address.getCountry()
       });
     }
     if(customer.getPhones() != null && !customer.getPhones().isEmpty()) {
-      jdbc.batchUpdate(ADD_PHONE, customer.getPhones(), customer.getPhones().size(), (ps, phone) -> {
+      jdbc.batchUpdate(ADD_PHONE, customer.getPhones(), 250, (ps, phone) -> {
         ps.setObject(1, uuid);
         ps.setShort(2, phone.getType().getCode());
         ps.setString(3, phone.getNumber());

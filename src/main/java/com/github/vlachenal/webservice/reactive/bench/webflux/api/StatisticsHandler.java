@@ -8,7 +8,6 @@ package com.github.vlachenal.webservice.reactive.bench.webflux.api;
 
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.UUID;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
@@ -16,7 +15,8 @@ import org.springframework.web.reactive.function.BodyInserters;
 import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.reactive.function.server.ServerResponse;
 
-import com.github.vlachenal.webservice.reactive.bench.dao.StatisticsDAO;
+import com.github.vlachenal.webservice.reactive.bench.business.StatisticsBusiness;
+import com.github.vlachenal.webservice.reactive.bench.errors.InvalidParametersException;
 import com.github.vlachenal.webservice.reactive.bench.mapping.mapstruct.MapStructMappers;
 import com.github.vlachenal.webservice.reactive.bench.rest.api.dto.ClientCall;
 import com.github.vlachenal.webservice.reactive.bench.rest.api.dto.TestSuite;
@@ -33,8 +33,8 @@ import reactor.core.publisher.Mono;
 public class StatisticsHandler {
 
   // Attributes +
-  /** Customer DAO */
-  private final StatisticsDAO dao;
+  /** Statistics business */
+  private final StatisticsBusiness business;
 
   /** MapStruct mappers */
   private final MapStructMappers mapstruct;
@@ -45,11 +45,11 @@ public class StatisticsHandler {
   /**
    * {@link StatisticsHandler} constructor
    *
-   * @param dao the customer DAO to use
+   * @param business the customer business to use
    * @param mapstruct the MapStruct mappers to use
    */
-  public StatisticsHandler(final StatisticsDAO dao, final MapStructMappers mapstruct) {
-    this.dao = dao;
+  public StatisticsHandler(final StatisticsBusiness business, final MapStructMappers mapstruct) {
+    this.business = business;
     this.mapstruct = mapstruct;
   }
   // Constructors -
@@ -64,33 +64,36 @@ public class StatisticsHandler {
    * @return the response
    */
   public Mono<ServerResponse> create(final ServerRequest request) {
-    final String id = dao.save(request.bodyToMono(TestSuite.class).blockOptional().map(mapstruct.suite()::fromRest).get());
-    URI uri = null;
+    Mono<ServerResponse> res = null;
     try {
-      uri = new URI("webflux/customer/" + id);
+      final String id = business.consolidate(request.bodyToMono(TestSuite.class).blockOptional()
+                                             .map(mapstruct.suite()::fromRest).get());
+      final URI uri = new URI("webflux/customer/" + id);
+      res = ServerResponse.created(uri).body(BodyInserters.fromObject(id));
+    } catch(final InvalidParametersException e) {
+      res = ServerResponse.badRequest().body(BodyInserters.fromObject(e.getMessage()));
     } catch(final URISyntaxException e) {
-      return ServerResponse.status(HttpStatus.INTERNAL_SERVER_ERROR).body(BodyInserters.fromObject("Can not convert URI ..."));
+      res = ServerResponse.status(HttpStatus.INTERNAL_SERVER_ERROR).body(BodyInserters.fromObject("Can not convert URI ..."));
     }
-    return ServerResponse.created(uri).body(BodyInserters.fromObject(id));
+    return res;
   }
 
   /**
    * Add calls to test suite
    *
-   * @param request the request
+   * @param req the request
    *
    * @return the response
    */
-  public Mono<ServerResponse> addCalls(final ServerRequest request) {
-    final String statId = request.pathVariable("id");
-    UUID uuid = null;
+  public Mono<ServerResponse> addCalls(final ServerRequest req) {
+    Mono<ServerResponse> res = null;
     try {
-      uuid = UUID.fromString(request.pathVariable("id"));
-    } catch(final IllegalArgumentException e) {
-      return ServerResponse.badRequest().body(BodyInserters.fromObject("Invalid UUID: " + statId));
+      business.registerCalls(req.pathVariable("id"), req.bodyToFlux(ClientCall.class).map(mapstruct.call()::fromRest));
+      res = ServerResponse.ok().build();
+    } catch(final InvalidParametersException e) {
+      res = ServerResponse.badRequest().body(BodyInserters.fromObject(e.getMessage()));
     }
-    dao.registerCalls(uuid, request.bodyToFlux(ClientCall.class).map(mapstruct.call()::fromRest));
-    return ServerResponse.ok().build();
+    return res;
   }
   // Methods -
 
