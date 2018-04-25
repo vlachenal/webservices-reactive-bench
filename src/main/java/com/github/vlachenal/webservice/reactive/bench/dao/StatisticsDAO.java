@@ -64,12 +64,12 @@ public class StatisticsDAO {
    * Save test suite in database
    *
    * @param testSuite the test suite to save
+   * @param uuid the new test suite identifier
    *
    * @return the test suite UUID
    */
   @Transactional
-  public String save(final TestSuiteDTO testSuite) {
-    final UUID uuid = UUID.randomUUID();
+  public String save(final TestSuiteDTO testSuite, final UUID uuid) {
     jdbc.update(INS_TEST_SUITE, ps -> {
       ps.setObject(1, uuid);
       ps.setString(2, testSuite.getClientCpu());

@@ -6,10 +6,8 @@
  */
 package com.github.vlachenal.webservice.reactive.bench.webflux.api;
 
-import java.net.URI;
-import java.net.URISyntaxException;
+import java.util.UUID;
 
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.BodyInserters;
 import org.springframework.web.reactive.function.server.ServerRequest;
@@ -59,23 +57,15 @@ public class StatisticsHandler {
   /**
    * Create a new test suite
    *
-   * @param request the request
+   * @param req the request
    *
    * @return the response
    */
-  public Mono<ServerResponse> create(final ServerRequest request) {
-    Mono<ServerResponse> res = null;
-    try {
-      final String id = business.consolidate(request.bodyToMono(TestSuite.class).blockOptional()
-                                             .map(mapstruct.suite()::fromRest).get());
-      final URI uri = new URI("webflux/customer/" + id);
-      res = ServerResponse.created(uri).body(BodyInserters.fromObject(id));
-    } catch(final InvalidParametersException e) {
-      res = ServerResponse.badRequest().body(BodyInserters.fromObject(e.getMessage()));
-    } catch(final URISyntaxException e) {
-      res = ServerResponse.status(HttpStatus.INTERNAL_SERVER_ERROR).body(BodyInserters.fromObject("Can not convert URI ..."));
-    }
-    return res;
+  public Mono<ServerResponse> create(final ServerRequest req) {
+    final UUID uuid = UUID.randomUUID();
+    return ServerResponse.created(req.uriBuilder().path("/{id}").build(uuid.toString()))
+        .body(BodyInserters.fromObject(business.consolidate(req.bodyToMono(TestSuite.class).map(mapstruct.suite()::fromRest), uuid)))
+        .onErrorResume(InvalidParametersException.class, e -> ServerResponse.badRequest().body(BodyInserters.fromObject(e.getMessage())));
   }
 
   /**
@@ -86,14 +76,8 @@ public class StatisticsHandler {
    * @return the response
    */
   public Mono<ServerResponse> addCalls(final ServerRequest req) {
-    Mono<ServerResponse> res = null;
-    try {
-      business.registerCalls(req.pathVariable("id"), req.bodyToFlux(ClientCall.class).map(mapstruct.call()::fromRest));
-      res = ServerResponse.ok().build();
-    } catch(final InvalidParametersException e) {
-      res = ServerResponse.badRequest().body(BodyInserters.fromObject(e.getMessage()));
-    }
-    return res;
+    return ServerResponse.ok().build(t -> business.registerCalls(req.pathVariable("id"), req.bodyToFlux(ClientCall.class).map(mapstruct.call()::fromRest)))
+        .onErrorResume(InvalidParametersException.class, e -> ServerResponse.badRequest().body(BodyInserters.fromObject(e.getMessage())));
   }
   // Methods -
 

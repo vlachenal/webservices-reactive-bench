@@ -6,11 +6,9 @@
  */
 package com.github.vlachenal.webservice.reactive.bench.webflux.api;
 
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.util.List;
+import java.util.UUID;
 
-import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.BodyInserters;
@@ -20,7 +18,6 @@ import org.springframework.web.reactive.function.server.ServerResponse;
 import com.github.vlachenal.webservice.reactive.bench.business.CustomerBusiness;
 import com.github.vlachenal.webservice.reactive.bench.cache.StatisticsCache;
 import com.github.vlachenal.webservice.reactive.bench.dto.CallDTO;
-import com.github.vlachenal.webservice.reactive.bench.dto.CustomerDTO;
 import com.github.vlachenal.webservice.reactive.bench.errors.InvalidParametersException;
 import com.github.vlachenal.webservice.reactive.bench.errors.NotFoundException;
 import com.github.vlachenal.webservice.reactive.bench.mapping.mapstruct.MapStructMappers;
@@ -116,18 +113,10 @@ public class CustomerHandler {
    */
   public Mono<ServerResponse> get(final ServerRequest req) {
     final CallDTO call = initializeCall(req.headers().header("request_seq"), "get");
-    Mono<ServerResponse> res = null;
-    try {
-      final CustomerDTO cust = business.getDetails(req.pathVariable("id"));
-      res = ServerResponse.ok().contentType(MediaType.APPLICATION_JSON)
-          .body(BodyInserters.fromObject(mapstruct.customer().toRest(cust)));
-    } catch(final InvalidParametersException e) {
-      res = ServerResponse.badRequest().body(BodyInserters.fromObject(e.getMessage()));
-    } catch(final NotFoundException e) {
-      res = ServerResponse.notFound().build();
-    }
-    registerCall(call);
-    return res;
+    return ServerResponse.ok().contentType(MediaType.APPLICATION_JSON).body(BodyInserters.fromObject(mapstruct.customer().toRest(business.getDetails(req.pathVariable("id")))))
+        .onErrorResume(InvalidParametersException.class, e -> ServerResponse.badRequest().body(BodyInserters.fromObject(e.getMessage())))
+        .onErrorResume(NotFoundException.class, e -> ServerResponse.notFound().build())
+        .doFinally(s -> registerCall(call));
   }
 
   /**
@@ -139,18 +128,11 @@ public class CustomerHandler {
    */
   public Mono<ServerResponse> create(final ServerRequest req) {
     final CallDTO call = initializeCall(req.headers().header("request_seq"), "create");
-    Mono<ServerResponse> res = null;
-    try {
-      final String uuid = business.create(req.bodyToMono(Customer.class).map(mapstruct.customer()::fromRest).block());
-      final URI uri = new URI("webflux/customer/" + uuid);
-      res = ServerResponse.created(uri).body(BodyInserters.fromObject(uuid));
-    } catch(final InvalidParametersException e) {
-      res = ServerResponse.badRequest().body(BodyInserters.fromObject(e.getMessage()));
-    } catch(final URISyntaxException e) {
-      res = ServerResponse.status(HttpStatus.INTERNAL_SERVER_ERROR).body(BodyInserters.fromObject("Can not convert URI ..."));
-    }
-    registerCall(call);
-    return res;
+    final UUID uuid = UUID.randomUUID();
+    return ServerResponse.created(req.uriBuilder().path("/{id}").build(uuid.toString()))
+        .body(BodyInserters.fromObject(business.create(req.bodyToMono(Customer.class).map(mapstruct.customer()::fromRest), uuid)))
+        .onErrorResume(InvalidParametersException.class, e -> ServerResponse.badRequest().body(BodyInserters.fromObject(e.getMessage())))
+        .doFinally(s -> registerCall(call));
   }
 
   /**
@@ -162,10 +144,8 @@ public class CustomerHandler {
    */
   public Mono<ServerResponse> list(final ServerRequest req) {
     final CallDTO call = initializeCall(req.headers().header("request_seq"), "get");
-    final Mono<ServerResponse> res = ServerResponse.ok().contentType(MediaType.APPLICATION_JSON)
-        .body(business.listAll().map(mapstruct.customer()::toRest), Customer.class);
-    registerCall(call);
-    return res;
+    return ServerResponse.ok().contentType(MediaType.APPLICATION_JSON).body(business.listAll().map(mapstruct.customer()::toRest), Customer.class)
+        .doFinally(s -> registerCall(call));
   }
 
   /**
@@ -176,8 +156,7 @@ public class CustomerHandler {
    * @return the response
    */
   public Mono<ServerResponse> delete(final ServerRequest req) {
-    business.deleteAll();
-    return ServerResponse.ok().build();
+    return ServerResponse.ok().build(t -> business.deleteAll());
   }
   // Methods -
 

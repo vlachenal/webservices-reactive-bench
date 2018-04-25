@@ -18,6 +18,7 @@ import com.github.vlachenal.webservice.reactive.bench.dto.TestSuiteDTO;
 import com.github.vlachenal.webservice.reactive.bench.errors.InvalidParametersException;
 
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 
 /**
@@ -64,27 +65,31 @@ public class StatisticsBusiness extends AbstractBusiness {
    * Consolidate test suite
    *
    * @param suite the test suite to consolidate
+   * @param uuid the new test suite identifier
    *
    * @throws InvalidParametersException missing or invalid parameters
    */
-  public String consolidate(final TestSuiteDTO suite) throws InvalidParametersException {
-    checkParameters("Test suite is null", suite);
-    checkParameters("Invalid test suite information", suite.getClientCpu(), suite.getClientMemory(), suite.getClientJvmVersion(), suite.getClientJvmVendor(), suite.getClientOsName(), suite.getClientOsVersion());
+  public String consolidate(final Mono<TestSuiteDTO> testSuite, final UUID uuid) throws InvalidParametersException {
+    testSuite.doOnNext(suite -> {
+      checkParameters("Test suite is null", suite);
+      checkParameters("Invalid test suite information", suite.getClientCpu(), suite.getClientMemory(), suite.getClientJvmVersion(), suite.getClientJvmVendor(), suite.getClientOsName(), suite.getClientOsVersion());
 
-    if(suite.getCalls() != null) {
-      suite.getCalls().stream().forEach(call -> cache.mergeCall(call));
-    }
+      if(suite.getCalls() != null) {
+        suite.getCalls().stream().forEach(call -> cache.mergeCall(call));
+      }
 
-    // Gather system informations +
-    suite.setServerJvmVersion(System.getProperty("java.version"));
-    suite.setServerJvmVendor(System.getProperty("java.vendor"));
-    suite.setServerOsName(System.getProperty("os.name"));
-    suite.setServerOsVersion(System.getProperty("os.version"));
-    suite.setServerCpu(cpu);
-    suite.setServerMemory(memory);
-    // Gather system informations -
+      // Gather system informations +
+      suite.setServerJvmVersion(System.getProperty("java.version"));
+      suite.setServerJvmVendor(System.getProperty("java.vendor"));
+      suite.setServerOsName(System.getProperty("os.name"));
+      suite.setServerOsVersion(System.getProperty("os.version"));
+      suite.setServerCpu(cpu);
+      suite.setServerMemory(memory);
+      // Gather system informations -
 
-    return dao.save(suite);
+      dao.save(suite, uuid);
+    }).subscribe();
+    return uuid.toString();
   }
 
   /**

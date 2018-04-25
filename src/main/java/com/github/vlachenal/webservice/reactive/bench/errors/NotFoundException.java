@@ -13,7 +13,7 @@ package com.github.vlachenal.webservice.reactive.bench.errors;
  * @author Vincent Lachenal
  */
 @SuppressWarnings("serial")
-public class NotFoundException extends Exception {
+public class NotFoundException extends RuntimeException {
 
   /**
    * {@link NotFoundException} default constructor

@@ -17,6 +17,7 @@ import com.github.vlachenal.webservice.reactive.bench.errors.InvalidParametersEx
 import com.github.vlachenal.webservice.reactive.bench.errors.NotFoundException;
 
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 
 /**
@@ -80,23 +81,27 @@ public class CustomerBusiness extends AbstractBusiness {
    * Create new customer
    *
    * @param customer the customer to create
+   * @param uuid the future UUID identifier
    *
    * @return the new customer's identifier
    *
    * @throws InvalidParametersException missing or invalid parameters
    */
-  public String create(final CustomerDTO customer) throws InvalidParametersException {
-    // Customer structure checks +
-    checkParameters("Customer is null", customer);
-    checkParameters("Customer first_name, last_name and brith_date has to be set", customer.getFirstName(), customer.getLastName(), customer.getBirthDate());
-    // Customer structure checks -
-    // Address structure checks +
-    final AddressDTO addr = customer.getAddress();
-    if(addr != null) {
-      checkParameters("Address lines, zip_code, city and country has to be set", addr.getLines(), addr.getZipCode(), addr.getCity(),addr.getCountry());
-    }
-    // Address structure checks -
-    return dao.create(customer);
+  public String create(final Mono<CustomerDTO> cust, final UUID uuid) throws InvalidParametersException {
+    cust.doOnNext(customer -> {
+      // Customer structure checks +
+      checkParameters("Customer is null", customer);
+      checkParameters("Customer first_name, last_name and brith_date has to be set", customer.getFirstName(), customer.getLastName(), customer.getBirthDate());
+      // Customer structure checks -
+      // Address structure checks +
+      final AddressDTO addr = customer.getAddress();
+      if(addr != null) {
+        checkParameters("Address lines, zip_code, city and country has to be set", addr.getLines(), addr.getZipCode(), addr.getCity(),addr.getCountry());
+      }
+      // Address structure checks -
+      dao.create(customer, uuid);
+    }).subscribe();
+    return uuid.toString();
   }
 
   /**

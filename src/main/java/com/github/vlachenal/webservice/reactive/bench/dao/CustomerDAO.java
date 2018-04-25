@@ -141,12 +141,12 @@ public class CustomerDAO {
    * Create customer in database
    *
    * @param customer the customer to create
+   * @param uuid the new customer identifier
    *
    * @return the customer identifier
    */
   @Transactional
-  public String create(final CustomerDTO customer) {
-    final UUID uuid = UUID.randomUUID();
+  public String create(final CustomerDTO customer, final UUID uuid) {
     jdbc.update(ADD_CUSTOMER, new Object[] {
       uuid,
       customer.getFirstName(),

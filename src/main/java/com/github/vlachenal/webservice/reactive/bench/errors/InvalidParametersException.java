@@ -13,7 +13,7 @@ package com.github.vlachenal.webservice.reactive.bench.errors;
  * @author Vincent Lachenal
  */
 @SuppressWarnings("serial")
-public class InvalidParametersException extends Exception {
+public class InvalidParametersException extends RuntimeException {
 
   // Constructors +
   /**
