@@ -69,7 +69,7 @@ public class CustomerHandler {
    * @param requestSeq the request sequence
    * @param method the method
    *
-   * @return the call if requestSeq is not equal to <code>-1</code>, <code>null</code> otherwise
+   * @return the call if requestSeq is not equal to {@code -1}, {@code null} otherwise
    */
   private CallDTO initializeCall(final List<String> requestSeq, final String method) {
     CallDTO call = null;

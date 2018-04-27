@@ -127,7 +127,7 @@ public class CustomerDAO {
    * @param lines the address lines
    * @param idx the line index
    *
-   * @return <code>true</code> if line exists, <code>false</code> otherwise
+   * @return {@code true} if line exists, {@code false} otherwise
    */
   private String getLine(final List<String> lines, final int idx) {
     String line = null;

@@ -57,8 +57,11 @@ public class ReactiveJdbcTemplate extends JdbcTemplate {
   /**
    * Copy of JdbcTemplate
    * Determine SQL from potential provider object.
+   *
    * @param sqlProvider object that's potentially a SqlProvider
+   *
    * @return the SQL string, or {@code null}
+   *
    * @see SqlProvider
    */
   @Nullable
@@ -378,12 +381,12 @@ public class ReactiveJdbcTemplate extends JdbcTemplate {
     final List<int[]> rowsAffected = new ArrayList<>();
     final MutableInteger num = new MutableInteger(0);
     final int[][] result = execute(sql, (PreparedStatementCallback<int[][]>)ps -> {
-      boolean plop = true;
+      boolean batchSuppo = true;
       if(!JdbcUtils.supportsBatchUpdates(ps.getConnection())) {
-        plop = false;
+        batchSuppo = false;
         logger.warn("JDBC Driver does not support Batch updates; resorting to single statement execution");
       }
-      final boolean batchSupported = plop;
+      final boolean batchSupported = batchSuppo; // Duplicate variable for lambda usage
       try {
         batchArgs.doOnNext(item -> {
           try {
@@ -407,18 +410,20 @@ public class ReactiveJdbcTemplate extends JdbcTemplate {
             throw translateException("Flux.doOnNext", sql, e);
           }
         }).doOnComplete(() -> {
-          // Perform last update if not empty
-          final int n = num.get();
-          if(n % batchSize != 0) {
-            if(logger.isDebugEnabled()) {
-              final int batchIdx = (n % batchSize == 0) ? n / batchSize : (n / batchSize) + 1;
-              final int items = n - ((n % batchSize == 0) ? n / batchSize - 1 : (n / batchSize)) * batchSize;
-              logger.debug("Sending SQL batch update #" + batchIdx + " with " + items + " items");
-            }
-            try {
-              rowsAffected.add(ps.executeBatch());
-            } catch(final SQLException e) {
-              throw translateException("Flux.doOnComplete", sql, e);
+          if(batchSupported) {
+            // Perform last update if not empty
+            final int n = num.get();
+            if(n % batchSize != 0) {
+              if(logger.isDebugEnabled()) {
+                final int batchIdx = (n % batchSize == 0) ? n / batchSize : (n / batchSize) + 1;
+                final int items = n - ((n % batchSize == 0) ? n / batchSize - 1 : (n / batchSize)) * batchSize;
+                logger.debug("Sending SQL batch update #" + batchIdx + " with " + items + " items");
+              }
+              try {
+                rowsAffected.add(ps.executeBatch());
+              } catch(final SQLException e) {
+                throw translateException("Flux.doOnComplete", sql, e);
+              }
             }
           }
         }).subscribe();
@@ -454,7 +459,7 @@ public class ReactiveJdbcTemplate extends JdbcTemplate {
 
     /**
      * {@link MutableInteger} default constructor.<br>
-     * Value is initialized to <code>1</code>
+     * Value is initialized to {@code 0}
      */
     public MutableInteger() {
       val = 0;
