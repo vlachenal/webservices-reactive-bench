@@ -54,6 +54,7 @@ public class WebfluxRouter implements WebFluxConfigurer {
    *
    * @return the route configuration
    */
+  @Bean
   public RouterFunction<ServerResponse> routeStatistics(final StatisticsHandler handler) {
     return RouterFunctions.route(RequestPredicates.POST("/webflux/stats").and(RequestPredicates.contentType(MediaType.APPLICATION_JSON_UTF8)).and(RequestPredicates.accept(MediaType.TEXT_PLAIN)), handler::create)
         .andRoute(RequestPredicates.POST("/webflux/stats/{id}/calls").and(RequestPredicates.contentType(MediaType.APPLICATION_JSON_UTF8)).and(RequestPredicates.accept(MediaType.TEXT_PLAIN)), handler::addCalls);
