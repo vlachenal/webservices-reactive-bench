@@ -12,6 +12,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.PropertySource;
+import org.springframework.web.reactive.config.EnableWebFlux;
 
 /**
  * Application entry point
@@ -19,6 +20,7 @@ import org.springframework.context.annotation.PropertySource;
  * @author Vincent Lachenal
  */
 @Configuration
+@EnableWebFlux
 @EnableAutoConfiguration
 @ComponentScan
 @SpringBootApplication

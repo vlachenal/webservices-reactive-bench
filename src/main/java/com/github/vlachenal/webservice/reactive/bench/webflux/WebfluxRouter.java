@@ -10,7 +10,6 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
-import org.springframework.web.reactive.config.EnableWebFlux;
 import org.springframework.web.reactive.config.WebFluxConfigurer;
 import org.springframework.web.reactive.function.server.RequestPredicates;
 import org.springframework.web.reactive.function.server.RouterFunction;
@@ -27,7 +26,6 @@ import com.github.vlachenal.webservice.reactive.bench.webflux.api.StatisticsHand
  * @author Vincent Lachenal
  */
 @Configuration
-@EnableWebFlux
 public class WebfluxRouter implements WebFluxConfigurer {
 
   /**

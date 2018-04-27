@@ -6,9 +6,13 @@
  */
 package com.github.vlachenal.webservice.reactive.bench.jdbc;
 
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import javax.sql.DataSource;
 
@@ -17,7 +21,12 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.ParameterDisposer;
 import org.springframework.jdbc.core.ParameterizedPreparedStatementSetter;
 import org.springframework.jdbc.core.PreparedStatementCallback;
+import org.springframework.jdbc.core.PreparedStatementCreator;
+import org.springframework.jdbc.core.PreparedStatementSetter;
 import org.springframework.jdbc.core.RowMapper;
+import org.springframework.jdbc.core.SingleColumnRowMapper;
+import org.springframework.jdbc.core.SqlProvider;
+import org.springframework.jdbc.datasource.DataSourceUtils;
 import org.springframework.jdbc.support.JdbcUtils;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
@@ -46,37 +55,317 @@ public class ReactiveJdbcTemplate extends JdbcTemplate {
 
   // Methods +
   /**
-   * Query for stream
-   *
-   * @param <T> the stream type
-   *
-   * @param sql the SQL query
-   * @param rowMapper the row mapper
-   * @param args the prepared statement values
-   *
-   * @return the result stream
+   * Copy of JdbcTemplate
+   * Determine SQL from potential provider object.
+   * @param sqlProvider object that's potentially a SqlProvider
+   * @return the SQL string, or {@code null}
+   * @see SqlProvider
    */
-  public <T> Flux<T> queryForFlux(final String sql, final RowMapper<T> rowMapper, @Nullable final Object... args) {
-    return Flux.<T>create(emitter -> {
-      final MutableInteger rowNum = new MutableInteger(1);
-      query(sql, args, (rs) -> {
-        emitter.next(rowMapper.mapRow(rs, rowNum.getAndAdd(1)));
-      });
-      emitter.complete();
-    });
+  @Nullable
+  private static String getSql(final Object sqlProvider) {
+    if(sqlProvider instanceof SqlProvider) {
+      return ((SqlProvider)sqlProvider).getSql();
+    } else {
+      return null;
+    }
   }
 
   /**
-   * SQL batch update
+   * Reintegrate exectue method source code to release SQL connection and prepare statement.
    *
-   * @param sql the SQL query
-   * @param batchArgs the batch flux
-   * @param batchSize the batch size
-   * @param pss the parameterized prepared statement
+   * Query using a prepared statement, allowing for a PreparedStatementCreator
+   * and a PreparedStatementSetter. Most other query methods use this method,
+   * but application code will always work with either a creator or a setter.
    *
-   * @return plop
+   * @param psc Callback handler that can create a PreparedStatement given a Connection
+   * @param pss object that knows how to set values on the prepared statement.
+   *            If this is null, the SQL will be assumed to contain no bind parameters.
+   * @param rse object that will extract each row.
    *
-   * @throws DataAccessException any error
+   * @return an arbitrary result Flux, as returned by the RowMapper
+   *
+   * @throws DataAccessException if there is any problem
+   */
+  @Nullable
+  public <T> Flux<T> queryForFlux(final PreparedStatementCreator psc, @Nullable final PreparedStatementSetter pss, final RowMapper<T> rowMapper) throws DataAccessException {
+    Assert.notNull(rowMapper, "RowMapper must not be null");
+    logger.debug("Executing prepared SQL query");
+    Assert.notNull(psc, "PreparedStatementCreator must not be null");
+    if(logger.isDebugEnabled()) {
+      final String sql = getSql(psc);
+      logger.debug("Executing prepared SQL statement" + (sql != null ? " [" + sql + "]" : ""));
+    }
+
+    final Connection con = DataSourceUtils.getConnection(obtainDataSource());
+    PreparedStatement ps = null;
+    ResultSet rs = null;
+    try {
+      final PreparedStatement ips = ps = psc.createPreparedStatement(con);
+      applyStatementSettings(ps);
+      Flux<T> result = null;
+      if(pss != null) {
+        pss.setValues(ps);
+      }
+      final ResultSet res = rs = ps.executeQuery(); // Duplicate variable for lambda usage
+      final MutableInteger rowNum = new MutableInteger(0);
+      result = Flux.<T>generate(emitter -> {
+        try {
+          if(res.next()) {
+            emitter.next(rowMapper.mapRow(res, rowNum.addAndGet(1)));
+          } else {
+            emitter.complete();
+          }
+        } catch(final SQLException e) {
+          emitter.error(translateException("Flux.get", getSql(psc), e));
+        }
+      }).doOnTerminate(() -> {
+        JdbcUtils.closeResultSet(res);
+        if(pss instanceof ParameterDisposer) {
+          ((ParameterDisposer)pss).cleanupParameters();
+        }
+        JdbcUtils.closeStatement(ips);
+        DataSourceUtils.releaseConnection(con, getDataSource());
+      });
+      handleWarnings(ps);
+      return result;
+    } catch(final SQLException ex) {
+      // Release Connection early, to avoid potential connection pool deadlock
+      // in the case when the exception translator hasn't been initialized yet.
+      JdbcUtils.closeResultSet(rs);
+      if(psc instanceof ParameterDisposer) {
+        ((ParameterDisposer)psc).cleanupParameters();
+      }
+      final String sql = getSql(psc);
+      JdbcUtils.closeStatement(ps);
+      DataSourceUtils.releaseConnection(con, getDataSource());
+      throw translateException("PreparedStatementCallback", sql, ex);
+    }
+  }
+
+  /**
+   * Query given SQL to create a prepared statement from SQL and a
+   * list of arguments to bind to the query, expecting a result list.
+   * <p>The results will be mapped to a List (one entry for each row) of
+   * result objects, each of them matching the specified element type.
+   *
+   * @param sql SQL query to execute
+   * @param args arguments to bind to the query
+   * @param argTypes SQL types of the arguments (constants from {@code java.sql.Types})
+   * @param elementType the required type of element in the result list (for example, {@code Integer.class})
+   *
+   * @return a Flux of objects that match the specified element type
+   *
+   * @throws DataAccessException if the query fails
+   *
+   * @see #queryForList(String, Class)
+   * @see SingleColumnRowMapper
+   */
+  public <T> Flux<T> queryForFlux(final String sql, final Object[] args, final int[] argTypes, final Class<T> elementType) throws DataAccessException {
+    return queryForFlux(new SimplePreparedStatementCreator(sql), newArgTypePreparedStatementSetter(args, argTypes), getSingleColumnRowMapper(elementType));
+  }
+
+  /**
+   * Query given SQL to create a prepared statement from SQL and a
+   * list of arguments to bind to the query, expecting a result list.
+   * <p>The results will be mapped to a List (one entry for each row) of
+   * result objects, each of them matching the specified element type.
+   *
+   * @param sql SQL query to execute
+   * @param args arguments to bind to the query
+   * @param elementType the required type of element in the result list (for example, {@code Integer.class})
+   *
+   * @return a Flux of objects that match the specified element type
+   *
+   * @throws DataAccessException if the query fails
+   *
+   * @see #queryForList(String, Class)
+   * @see SingleColumnRowMapper
+   */
+  public <T> Flux<T> queryForFlux(final String sql, final Object[] args, final Class<T> elementType) throws DataAccessException {
+    return queryForFlux(new SimplePreparedStatementCreator(sql), newArgPreparedStatementSetter(args), getSingleColumnRowMapper(elementType));
+  }
+
+  /**
+   * Query given SQL to create a prepared statement from SQL and a
+   * list of arguments to bind to the query, expecting a result list.
+   * <p>The results will be mapped to a List (one entry for each row) of
+   * result objects, each of them matching the specified element type.
+   *
+   * @param sql SQL query to execute
+   * @param args arguments to bind to the query
+   * @param elementType the required type of element in the result list (for example, {@code Integer.class})
+   *
+   * @return a Flux of objects that match the specified element type
+   *
+   * @throws DataAccessException if the query fails
+   *
+   * @see #queryForList(String, Class)
+   * @see SingleColumnRowMapper
+   */
+  public <T> Flux<T> queryForFlux(final String sql, final Class<T> elementType, @Nullable final Object... args) throws DataAccessException {
+    return queryForFlux(new SimplePreparedStatementCreator(sql), newArgPreparedStatementSetter(args), getSingleColumnRowMapper(elementType));
+  }
+
+  /**
+   * Execute a query for a result list, given static SQL.
+   * <p>Uses a JDBC Statement, not a PreparedStatement. If you want to
+   * execute a static query with a PreparedStatement, use the overloaded
+   * {@code queryForList} method with {@code null} as argument array.
+   * <p>The results will be mapped to a List (one entry for each row) of
+   * Maps (one entry for each column using the column name as the key).
+   * Each element in the list will be of the form returned by this interface's
+   * queryForMap() methods.
+   *
+   * @param sql SQL query to execute
+   * @param args arguments to bind to the query
+   * @param argTypes SQL types of the arguments (constants from {@code java.sql.Types})
+   *
+   * @return an Map that contains a Map per row
+   *
+   * @throws DataAccessException if there is any problem executing the query
+   *
+   * @see #queryForList(String, Object[])
+   */
+  public Flux<Map<String, Object>> queryForFlux(final String sql, final Object[] args, final int[] argTypes) throws DataAccessException {
+    return queryForFlux(new SimplePreparedStatementCreator(sql), newArgTypePreparedStatementSetter(args, argTypes), getColumnMapRowMapper());
+  }
+
+  /**
+   * Execute a query for a result list, given static SQL.
+   * <p>Uses a JDBC Statement, not a PreparedStatement. If you want to
+   * execute a static query with a PreparedStatement, use the overloaded
+   * {@code queryForList} method with {@code null} as argument array.
+   * <p>The results will be mapped to a List (one entry for each row) of
+   * Maps (one entry for each column using the column name as the key).
+   * Each element in the list will be of the form returned by this interface's
+   * queryForMap() methods.
+   *
+   * @param sql SQL query to execute
+   * @param args arguments to bind to the query
+   *
+   * @return an Map that contains a Map per row
+   *
+   * @throws DataAccessException if there is any problem executing the query
+   *
+   * @see #queryForList(String, Object[])
+   */
+  public Flux<Map<String, Object>> queryForFlux(final String sql, @Nullable final Object... args) throws DataAccessException {
+    return queryForFlux(new SimplePreparedStatementCreator(sql), newArgPreparedStatementSetter(args), getColumnMapRowMapper());
+  }
+
+  /**
+   * Query given SQL to create a prepared statement from SQL and a
+   * list of arguments to bind to the query, expecting a result list.
+   * <p>The results will be mapped to a List (one entry for each row) of
+   * result objects, each of them matching the specified element type.
+   *
+   * @param sql SQL query to execute
+   * @param elementType the required type of element in the result list (for example, {@code Integer.class})
+   *
+   * @return a Flux of objects that match the specified element type
+   *
+   * @throws DataAccessException if the query fails
+   *
+   * @see #queryForList(String, Class)
+   * @see SingleColumnRowMapper
+   */
+  public <T> Flux<T> queryForFlux(final String sql, final Class<T> elementType) throws DataAccessException {
+    return queryForFlux(new SimplePreparedStatementCreator(sql), null, getSingleColumnRowMapper(elementType));
+  }
+
+  /**
+   * Execute a query for a result list, given static SQL.
+   * <p>Uses a JDBC Statement, not a PreparedStatement. If you want to
+   * execute a static query with a PreparedStatement, use the overloaded
+   * {@code queryForList} method with {@code null} as argument array.
+   * <p>The results will be mapped to a List (one entry for each row) of
+   * Maps (one entry for each column using the column name as the key).
+   * Each element in the list will be of the form returned by this interface's
+   * queryForMap() methods.
+   *
+   * @param sql SQL query to execute
+   *
+   * @return an Map that contains a Map per row
+   *
+   * @throws DataAccessException if there is any problem executing the query
+   *
+   * @see #queryForList(String, Object[])
+   */
+  public Flux<Map<String, Object>> queryForFlux(final String sql) throws DataAccessException {
+    return queryForFlux(new SimplePreparedStatementCreator(sql), null, getColumnMapRowMapper());
+  }
+
+  /**
+   * Query given SQL to create a prepared statement from SQL and a list
+   * of arguments to bind to the query, mapping each row to a Java object
+   * via a RowMapper.
+   *
+   * @param sql SQL query to execute
+   * @param rowMapper object that will map one object per row
+   * @param args arguments to bind to the query
+   *
+   * @return the result Flux, containing mapped objects
+   *
+   * @throws DataAccessException if the query fails
+   *
+   * @see java.sql.Types
+   */
+  public <T> Flux<T> queryForFlux(final String sql, final RowMapper<T> rowMapper, @Nullable final Object... args) {
+    return queryForFlux(new SimplePreparedStatementCreator(sql), newArgPreparedStatementSetter(args), rowMapper);
+  }
+
+  /**
+   * Query given SQL to create a prepared statement from SQL and a list
+   * of arguments to bind to the query, mapping each row to a Java object
+   * via a RowMapper.
+   *
+   * @param sql SQL query to execute
+   * @param args arguments to bind to the query
+   * @param rowMapper object that will map one object per row
+   *
+   * @return the result Flux, containing mapped objects
+   *
+   * @throws DataAccessException if the query fails
+   *
+   * @see java.sql.Types
+   */
+  public <T> Flux<T> queryForFlux(final String sql, final Object[] args, final RowMapper<T> rowMapper) {
+    return queryForFlux(new SimplePreparedStatementCreator(sql), newArgPreparedStatementSetter(args), rowMapper);
+  }
+
+  /**
+   * Query given SQL to create a prepared statement from SQL and a list
+   * of arguments to bind to the query, mapping each row to a Java object
+   * via a RowMapper.
+   *
+   * @param sql SQL query to execute
+   * @param args arguments to bind to the query
+   * @param argTypes SQL types of the arguments (constants from {@code java.sql.Types})
+   * @param rowMapper object that will map one object per row
+   *
+   * @return the result Flux, containing mapped objects
+   *
+   * @throws DataAccessException if the query fails
+   *
+   * @see java.sql.Types
+   */
+  public <T> Flux<T> queryForFlux(final String sql, final Object[] args, final int[] argTypes, final RowMapper<T> rowMapper) {
+    return queryForFlux(new SimplePreparedStatementCreator(sql), newArgTypePreparedStatementSetter(args, argTypes), rowMapper);
+  }
+
+  /**
+   * Execute multiple batches using the supplied SQL statement with the collect of supplied arguments.
+   * The arguments' values will be set using the ParameterizedPreparedStatementSetter.
+   * Each batch should be of size indicated in 'batchSize'.
+   *
+   * @param sql the SQL statement to execute.
+   * @param batchArgs the List of Object arrays containing the batch of arguments for the query
+   * @param batchSize batch size
+   * @param pss ParameterizedPreparedStatementSetter to use
+   *
+   * @return an array containing for each batch another array containing the numbers of rows affected by each update in the batch
+   *
+   * @throws DataAccessException if there is any problem issuing the update
    */
   public <T> int[][] batchUpdate(final String sql,
                                  final Flux<T> batchArgs,
@@ -115,7 +404,6 @@ public class ReactiveJdbcTemplate extends JdbcTemplate {
               rowsAffected.add(new int[] { i });
             }
           } catch(final SQLException e) {
-            System.err.println("Error " + e.getMessage());
             throw translateException("Flux.doOnNext", sql, e);
           }
         }).doOnComplete(() -> {
@@ -215,6 +503,29 @@ public class ReactiveJdbcTemplate extends JdbcTemplate {
       return val;
     }
 
+  }
+
+  /**
+   * Copy of JdbcTemplte
+   */
+  private static class SimplePreparedStatementCreator implements PreparedStatementCreator, SqlProvider {
+
+    private final String sql;
+
+    public SimplePreparedStatementCreator(final String sql) {
+      Assert.notNull(sql, "SQL must not be null");
+      this.sql = sql;
+    }
+
+    @Override
+    public PreparedStatement createPreparedStatement(final Connection con) throws SQLException {
+      return con.prepareStatement(sql);
+    }
+
+    @Override
+    public String getSql() {
+      return sql;
+    }
   }
   // Classes -
 

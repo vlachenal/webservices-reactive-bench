@@ -74,7 +74,7 @@ public class ReactiveJdbcTemplateTest {
 
   // Tests +
   /**
-   * Test method for {@link com.github.vlachenal.webservice.reactive.bench.jdbc.ReactiveJdbcTemplate#queryForFlux(java.lang.String, org.springframework.jdbc.core.RowMapper, java.lang.Object[])}.
+   * Test method for {@link com.github.vlachenal.webservice.reactive.bench.jdbc.ReactiveJdbcTemplate#flow(java.lang.String, org.springframework.jdbc.core.RowMapper, java.lang.Object[])}.
    *
    * @throws InterruptedException can not happened
    */
