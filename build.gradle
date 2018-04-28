@@ -89,4 +89,5 @@ dependencies {
     // tests
     testCompile 'org.springframework.boot:spring-boot-starter-test'
     testCompile 'io.projectreactor:reactor-test'
+    testCompile 'org.hsqldb:hsqldb:2.4.0'
 }
