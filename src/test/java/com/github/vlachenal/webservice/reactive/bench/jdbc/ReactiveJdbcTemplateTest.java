@@ -79,7 +79,12 @@ public class ReactiveJdbcTemplateTest {
   public void before() {
     LOG.debug("Initialize reactive JDBC template");
     if(!initialized.get()) {
-      final boolean ci = Optional.ofNullable(System.getProperty("spring.profiles.active")).map(s -> s.contains("ci")).orElse(Boolean.FALSE);
+      String profiles = System.getProperty("spring.profiles.active");
+      if(profiles == null) {
+        profiles = System.getenv("SPRING_PROFILES_ACTIVE");
+      }
+      LOG.error("Found profiles: {}", profiles);
+      final boolean ci = Optional.ofNullable(profiles).map(s -> s.contains("ci")).orElse(Boolean.FALSE);
       if(ci) {
         final ResourceDatabasePopulator populator = new ResourceDatabasePopulator(new ClassPathResource("schema-hsqldb.sql"));
         populator.execute(dataSource);
