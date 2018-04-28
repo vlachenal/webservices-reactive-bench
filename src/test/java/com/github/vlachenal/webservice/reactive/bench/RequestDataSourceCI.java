@@ -18,7 +18,7 @@ import org.springframework.context.annotation.PropertySource;
 
 
 /**
- * Datasource configuration
+ * Datasource configuration for continous integration
  *
  * @author Vincent Lachenal
  */
