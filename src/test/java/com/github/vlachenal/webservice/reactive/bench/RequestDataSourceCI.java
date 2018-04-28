@@ -23,9 +23,9 @@ import org.springframework.context.annotation.PropertySource;
  * @author Vincent Lachenal
  */
 @Configuration
-@Profile("!ci")
-@PropertySource({"classpath:db.properties"})
-public class RequestDataSource {
+@Profile("ci")
+@PropertySource({"classpath:db-ci.properties"})
+public class RequestDataSourceCI {
 
   // Methods +
   /**
