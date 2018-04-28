@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/vlachenal/webservices-reactive-bench.svg?branch=master)](https://travis-ci.org/vlachenal/webservices-reactive-bench)
+
 # webservices-reactive-bench
 
  Project to test Spring Webflux
