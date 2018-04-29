@@ -10,6 +10,8 @@ This is the reactive implementation of [webservices-bench project](https://githu
 
 I did not integrate reactive implementation in the main project because reactive implementation changes the service architecture ... and it does not work together (new endpoints had not been taken into accounts).
 
+You can find the client part in [webservices-bench project](https://github.com/vlachenal/webservices-bench-client/tree/reactive) on "reactive" branch.
+
 ## Conclusions
 
 ### Advantages
@@ -22,4 +24,4 @@ Reactive programming to be taken into account in the service architecture. Chang
 
 spring-jdbc does not have reactive part: I implements class which extends JdbcTemplate and which manage flux but I am not sure it is really reactive (depends on JDBC implementations).
 
-For now, WebClient can not be used if project is not a reactive web server.
+~~For now, WebClient can not be used if project is not a reactive web server.~~
