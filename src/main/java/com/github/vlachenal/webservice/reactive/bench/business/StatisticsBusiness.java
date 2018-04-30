@@ -107,6 +107,7 @@ public class StatisticsBusiness extends AbstractBusiness {
       throw new InvalidParametersException(id + " is not an UUID");
     }
     dao.registerCalls(uuid, Flux.from(calls.doOnNext(c -> cache.mergeCall(c))));
+    System.err.println("End business registerCalls");
   }
   // Methods -
 
