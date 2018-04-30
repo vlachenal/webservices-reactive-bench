@@ -82,7 +82,7 @@ public class StatisticsHandler {
    * @return the response
    */
   public Mono<ServerResponse> addCalls(final ServerRequest req) {
-    return ServerResponse.ok().build(t -> business.registerCalls(req.pathVariable("id"), req.bodyToFlux(ClientCall.class).map(mapstruct.call()::fromRest)))
+    return ServerResponse.ok().build(business.registerCalls(req.pathVariable("id"), req.bodyToFlux(ClientCall.class).map(mapstruct.call()::fromRest)))
         .onErrorResume(InvalidParametersException.class, e -> ServerResponse.badRequest().body(BodyInserters.fromObject(e.getMessage())));
   }
 

@@ -7,6 +7,7 @@
 package com.github.vlachenal.webservice.reactive.bench.business;
 
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -99,15 +100,19 @@ public class StatisticsBusiness extends AbstractBusiness {
    *
    * @throws InvalidParametersException invalid test identifier
    */
-  public void registerCalls(final String id, final Flux<CallDTO> calls) throws InvalidParametersException {
+  public Mono<Void> registerCalls(final String id, final Flux<CallDTO> calls) throws InvalidParametersException {
     UUID uuid = null;
     try {
       uuid = UUID.fromString(id);
     } catch(final IllegalArgumentException e) {
       throw new InvalidParametersException(id + " is not an UUID");
     }
-    dao.registerCalls(uuid, Flux.from(calls.doOnNext(c -> cache.mergeCall(c))));
-    System.err.println("End business registerCalls");
+    final CompletableFuture<Void> future = new CompletableFuture<>();
+    final Mono<Void> res = Mono.fromFuture(future);
+    final Flux<CallDTO> mergedCalls = Flux.from(calls.doOnNext(c -> cache.mergeCall(c)).doFinally(t -> future.complete(null)));
+    mergedCalls.subscribe();
+    dao.registerCalls(uuid, mergedCalls);
+    return res;
   }
   // Methods -
 
