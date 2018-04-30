@@ -109,9 +109,10 @@ public class StatisticsBusiness extends AbstractBusiness {
     }
     final CompletableFuture<Void> future = new CompletableFuture<>();
     final Mono<Void> res = Mono.fromFuture(future);
-    final Flux<CallDTO> mergedCalls = Flux.from(calls.doOnNext(c -> cache.mergeCall(c)).doFinally(t -> future.complete(null)));
-    mergedCalls.subscribe();
-    dao.registerCalls(uuid, mergedCalls);
+    //    final Flux<CallDTO> mergedCalls = Flux.from(calls.doOnNext(c -> cache.mergeCall(c)).doFinally(t -> future.complete(null)));
+    //    mergedCalls.subscribe();
+    calls.doOnNext(c -> cache.mergeCall(c)).doFinally(t -> future.complete(null)).subscribe();
+    dao.registerCalls(uuid, Flux.from(calls));
     return res;
   }
   // Methods -
