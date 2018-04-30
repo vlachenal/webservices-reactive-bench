@@ -102,10 +102,9 @@ public class StatisticsDAO {
    * @param uuid the test suite UUID
    * @param calls the calls to register
    */
-  @Transactional
   public void registerCalls(final UUID uuid, final Flux<CallDTO> calls) {
     jdbc.batchUpdate(INS_TEST_CALL, calls, 250, (ps, call) -> {
-      System.err.println(call.getMethod() + "-" + call.getSeq());
+      System.err.println(uuid.toString() + call.getMethod() + "-" + call.getSeq() + ": " + call.getServerEnd());
       ps.setInt(1, call.getSeq());
       ps.setObject(2, uuid);
       ps.setString(3, call.getMethod());
