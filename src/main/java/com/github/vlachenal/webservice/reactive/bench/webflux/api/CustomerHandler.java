@@ -156,7 +156,8 @@ public class CustomerHandler {
    * @return the response
    */
   public Mono<ServerResponse> delete(final ServerRequest req) {
-    return ServerResponse.ok().build(t -> business.deleteAll());
+    business.deleteAll();
+    return ServerResponse.ok().build();
   }
   // Methods -
 
