@@ -158,18 +158,17 @@ public class CustomerDAO {
     });
     if(customer.getAddress() != null) {
       final AddressDTO address = customer.getAddress();
-      jdbc.update(ADD_ADDRESS, new Object[] {
-        uuid,
-        getLine(customer.getAddress().getLines(),0),
-        getLine(customer.getAddress().getLines(),1),
-        getLine(customer.getAddress().getLines(),2),
-        getLine(customer.getAddress().getLines(),3),
-        getLine(customer.getAddress().getLines(),4),
-        getLine(customer.getAddress().getLines(),5),
-        address.getZipCode(),
-        address.getCity(),
-        address.getCountry()
-      });
+      jdbc.update(ADD_ADDRESS,
+                  uuid,
+                  getLine(customer.getAddress().getLines(),0),
+                  getLine(customer.getAddress().getLines(),1),
+                  getLine(customer.getAddress().getLines(),2),
+                  getLine(customer.getAddress().getLines(),3),
+                  getLine(customer.getAddress().getLines(),4),
+                  getLine(customer.getAddress().getLines(),5),
+                  address.getZipCode(),
+                  address.getCity(),
+                  address.getCountry());
     }
     if(customer.getPhones() != null && !customer.getPhones().isEmpty()) {
       jdbc.batchUpdate(ADD_PHONE, customer.getPhones(), 250, (ps, phone) -> {

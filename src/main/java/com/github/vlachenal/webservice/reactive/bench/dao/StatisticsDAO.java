@@ -105,6 +105,7 @@ public class StatisticsDAO {
   @Transactional
   public void registerCalls(final UUID uuid, final Flux<CallDTO> calls) {
     jdbc.batchUpdate(INS_TEST_CALL, calls, 250, (ps, call) -> {
+      System.err.println(call.getMethod() + "-" + call.getSeq());
       ps.setInt(1, call.getSeq());
       ps.setObject(2, uuid);
       ps.setString(3, call.getMethod());
