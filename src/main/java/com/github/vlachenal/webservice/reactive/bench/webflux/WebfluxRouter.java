@@ -65,6 +65,7 @@ public class WebfluxRouter implements WebFluxConfigurer {
                                  .and(RequestPredicates.contentType(MediaType.APPLICATION_JSON_UTF8))
                                  .and(RequestPredicates.accept(MediaType.TEXT_PLAIN)),
                                  handler::create)
+        .andRoute(RequestPredicates.DELETE("/webflux/stats"), handler::purge)
         .andRoute(RequestPredicates.POST("/webflux/stats/{id}/calls")
                   .and(RequestPredicates.contentType(MediaType.APPLICATION_JSON_UTF8).or(RequestPredicates.contentType(MediaType.APPLICATION_STREAM_JSON)))
                   .and(RequestPredicates.accept(MediaType.TEXT_PLAIN)),

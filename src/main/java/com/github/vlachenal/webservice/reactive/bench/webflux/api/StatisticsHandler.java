@@ -14,6 +14,7 @@ import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.reactive.function.server.ServerResponse;
 
 import com.github.vlachenal.webservice.reactive.bench.business.StatisticsBusiness;
+import com.github.vlachenal.webservice.reactive.bench.cache.StatisticsCache;
 import com.github.vlachenal.webservice.reactive.bench.errors.InvalidParametersException;
 import com.github.vlachenal.webservice.reactive.bench.mapping.mapstruct.MapStructMappers;
 import com.github.vlachenal.webservice.reactive.bench.rest.api.dto.ClientCall;
@@ -36,6 +37,9 @@ public class StatisticsHandler {
 
   /** MapStruct mappers */
   private final MapStructMappers mapstruct;
+
+  /** Statistics cache */
+  private final StatisticsCache stats;
   // Attributes -
 
 
@@ -45,10 +49,12 @@ public class StatisticsHandler {
    *
    * @param business the customer business to use
    * @param mapstruct the MapStruct mappers to use
+   * @param stats the statistics cache to use
    */
-  public StatisticsHandler(final StatisticsBusiness business, final MapStructMappers mapstruct) {
+  public StatisticsHandler(final StatisticsBusiness business, final MapStructMappers mapstruct, final StatisticsCache stats) {
     this.business = business;
     this.mapstruct = mapstruct;
+    this.stats = stats;
   }
   // Constructors -
 
@@ -78,6 +84,18 @@ public class StatisticsHandler {
   public Mono<ServerResponse> addCalls(final ServerRequest req) {
     return ServerResponse.ok().build(t -> business.registerCalls(req.pathVariable("id"), req.bodyToFlux(ClientCall.class).map(mapstruct.call()::fromRest)))
         .onErrorResume(InvalidParametersException.class, e -> ServerResponse.badRequest().body(BodyInserters.fromObject(e.getMessage())));
+  }
+
+  /**
+   * Purge statistics cache
+   *
+   * @param req the request
+   *
+   * @return the response
+   */
+  public Mono<ServerResponse> purge(final ServerRequest req) {
+    stats.clean();
+    return ServerResponse.ok().build();
   }
   // Methods -
 
