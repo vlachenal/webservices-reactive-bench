@@ -51,4 +51,19 @@ public interface TestSuiteMapper {
   })
   TestSuiteDTO fromRest(TestSuite suite);
 
+  /**
+   * Convert mapper enumeration to string
+   *
+   * @param mapper the mapper
+   *
+   * @return the string
+   */
+  default String fromRest(final com.github.vlachenal.webservice.reactive.bench.rest.api.dto.Mapper mapper) {
+    String str = null;
+    if(mapper != null) {
+      str = mapper.name().toLowerCase();
+    }
+    return str;
+  }
+
 }
