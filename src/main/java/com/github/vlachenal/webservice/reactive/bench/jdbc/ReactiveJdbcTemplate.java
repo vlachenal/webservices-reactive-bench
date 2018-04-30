@@ -10,8 +10,6 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
 
 import javax.sql.DataSource;
@@ -20,7 +18,6 @@ import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.ParameterDisposer;
 import org.springframework.jdbc.core.ParameterizedPreparedStatementSetter;
-import org.springframework.jdbc.core.PreparedStatementCallback;
 import org.springframework.jdbc.core.PreparedStatementCreator;
 import org.springframework.jdbc.core.PreparedStatementSetter;
 import org.springframework.jdbc.core.RowMapper;
@@ -366,82 +363,91 @@ public class ReactiveJdbcTemplate extends JdbcTemplate {
    * @param batchSize batch size
    * @param pss ParameterizedPreparedStatementSetter to use
    *
-   * @return an array containing for each batch another array containing the numbers of rows affected by each update in the batch
-   *
    * @throws DataAccessException if there is any problem issuing the update
    */
-  public <T> int[][] batchUpdate(final String sql,
-                                 final Flux<T> batchArgs,
-                                 final int batchSize,
-                                 final ParameterizedPreparedStatementSetter<T> pss) throws DataAccessException {
-
+  public <T> void batchUpdate(final String sql,
+                              final Flux<T> batchArgs,
+                              final int batchSize,
+                              final ParameterizedPreparedStatementSetter<T> pss) throws DataAccessException {
     if(logger.isDebugEnabled()) {
       logger.debug("Executing SQL batch update [" + sql + "] with a batch size of " + batchSize);
     }
-    final List<int[]> rowsAffected = new ArrayList<>();
     final MutableInteger num = new MutableInteger(0);
-    final int[][] result = execute(sql, (PreparedStatementCallback<int[][]>)ps -> {
-      boolean batchSuppo = true;
-      if(!JdbcUtils.supportsBatchUpdates(ps.getConnection())) {
-        batchSuppo = false;
+
+    final PreparedStatementCreator psc = new SimplePreparedStatementCreator(sql);
+    final Connection con = DataSourceUtils.getConnection(obtainDataSource());
+    PreparedStatement ps = null;
+    boolean batchSuppo = false;
+    try {
+      ps = psc.createPreparedStatement(con);
+      applyStatementSettings(ps);
+      batchSuppo = JdbcUtils.supportsBatchUpdates(ps.getConnection());
+      if(!batchSuppo) {
         logger.warn("JDBC Driver does not support Batch updates; resorting to single statement execution");
       }
-      final boolean batchSupported = batchSuppo; // Duplicate variable for lambda usage
+    } catch(final SQLException e) {
+      if(psc instanceof ParameterDisposer) {
+        ((ParameterDisposer)psc).cleanupParameters();
+      }
+      JdbcUtils.closeStatement(ps);
+      DataSourceUtils.releaseConnection(con, getDataSource());
+    }
+    final boolean batchSupported = batchSuppo;
+    final PreparedStatement stmt = ps;
+    batchArgs.doOnNext(item -> {
       try {
-        batchArgs.doOnNext(item -> {
-          try {
-            pss.setValues(ps, item);
-            final int n = num.addAndGet(1);
-            if(batchSupported) {
-              ps.addBatch();
-              if(n % batchSize == 0) {
-                if(logger.isDebugEnabled()) {
-                  final int batchIdx = (n % batchSize == 0) ? n / batchSize : (n / batchSize) + 1;
-                  final int items = n - ((n % batchSize == 0) ? n / batchSize - 1 : (n / batchSize)) * batchSize;
-                  logger.debug("Sending SQL batch update #" + batchIdx + " with " + items + " items");
-                }
-                rowsAffected.add(ps.executeBatch());
-              }
-            } else {
-              final int i = ps.executeUpdate();
-              rowsAffected.add(new int[] { i });
+        pss.setValues(stmt, item);
+        final int n = num.addAndGet(1);
+        if(batchSupported) {
+          stmt.addBatch();
+          if(n % batchSize == 0) {
+            if(logger.isDebugEnabled()) {
+              final int batchIdx = (n % batchSize == 0) ? n / batchSize : (n / batchSize) + 1;
+              final int items = n - ((n % batchSize == 0) ? n / batchSize - 1 : (n / batchSize)) * batchSize;
+              logger.debug("Sending SQL batch update #" + batchIdx + " with " + items + " items");
             }
-          } catch(final SQLException e) {
-            throw translateException("Flux.doOnNext", sql, e);
+            stmt.executeBatch();
           }
-        }).doOnComplete(() -> {
-          if(batchSupported) {
-            // Perform last update if not empty
-            final int n = num.get();
-            if(n % batchSize != 0) {
-              if(logger.isDebugEnabled()) {
-                final int batchIdx = (n % batchSize == 0) ? n / batchSize : (n / batchSize) + 1;
-                final int items = n - ((n % batchSize == 0) ? n / batchSize - 1 : (n / batchSize)) * batchSize;
-                logger.debug("Sending SQL batch update #" + batchIdx + " with " + items + " items");
-              }
-              try {
-                rowsAffected.add(ps.executeBatch());
-              } catch(final SQLException e) {
-                throw translateException("Flux.doOnComplete", sql, e);
-              }
-            }
-          }
-        }).subscribe();
-        final int[][] result1 = new int[rowsAffected.size()][];
-        for(int i = 0 ; i < result1.length ; ++i) {
-          result1[i] = rowsAffected.get(i);
+        } else {
+          stmt.executeUpdate();
         }
-        return result1;
-      } finally {
-        // Cleanup parameters
-        if(pss instanceof ParameterDisposer) {
-          ((ParameterDisposer)pss).cleanupParameters();
+      } catch(final SQLException e) {
+        throw translateException("Flux.doOnNext", sql, e);
+      }
+    }).doOnComplete(() -> {
+      if(batchSupported) {
+        // Perform last update if not empty
+        final int n = num.get();
+        if(n % batchSize != 0) {
+          if(logger.isDebugEnabled()) {
+            final int batchIdx = (n % batchSize == 0) ? n / batchSize : (n / batchSize) + 1;
+            final int items = n - ((n % batchSize == 0) ? n / batchSize - 1 : (n / batchSize)) * batchSize;
+            logger.debug("Sending SQL batch update #" + batchIdx + " with " + items + " items");
+          }
+          try {
+            stmt.executeBatch();
+          } catch(final SQLException e) {
+            throw translateException("Flux.doOnComplete", sql, e);
+          }
         }
       }
-    });
-
-    Assert.state(result != null, "No result array");
-    return result;
+    }).doFinally(t -> {
+      System.err.println("PLIP");
+      if(psc instanceof ParameterDisposer) {
+        ((ParameterDisposer)psc).cleanupParameters();
+      }
+      JdbcUtils.closeStatement(stmt);
+      DataSourceUtils.releaseConnection(con, getDataSource());
+    }).subscribe();
+    try {
+      handleWarnings(ps);
+    } catch(final SQLException e) {
+      if(psc instanceof ParameterDisposer) {
+        ((ParameterDisposer)psc).cleanupParameters();
+      }
+      JdbcUtils.closeStatement(stmt);
+      DataSourceUtils.releaseConnection(con, getDataSource());
+    }
   }
   // Methods -
 
