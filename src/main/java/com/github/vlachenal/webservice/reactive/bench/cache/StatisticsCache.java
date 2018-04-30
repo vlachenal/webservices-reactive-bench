@@ -58,8 +58,8 @@ public class StatisticsCache {
    */
   public void mergeCall(final CallDTO call) {
     Optional.ofNullable(calls.get(call.getKey())).ifPresent(regCall -> {
-      call.setServerStart(call.getServerStart());
-      call.setServerEnd(call.getServerEnd());
+      call.setServerStart(regCall.getServerStart());
+      call.setServerEnd(regCall.getServerEnd());
     });
   }
 

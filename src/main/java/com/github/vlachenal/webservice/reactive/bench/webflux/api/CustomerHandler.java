@@ -142,7 +142,7 @@ public class CustomerHandler {
    * @return the response
    */
   public Mono<ServerResponse> list(final ServerRequest req) {
-    final CallDTO call = initializeCall(req.headers().header("request_seq"), "get");
+    final CallDTO call = initializeCall(req.headers().header("request_seq"), "list");
     return ServerResponse.ok().contentType(MediaType.APPLICATION_JSON).body(business.listAll().map(mapstruct.customer()::toRest), Customer.class)
         .doFinally(s -> registerCall(call));
   }
