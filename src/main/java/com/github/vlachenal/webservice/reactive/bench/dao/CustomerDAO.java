@@ -106,16 +106,18 @@ public class CustomerDAO {
   public Optional<CustomerDTO> getDetails(final UUID id) {
     final Optional<CustomerDTO> customer = Optional.ofNullable(jdbc.queryForObject(REQ_GET_CUST, (rs, rowNum) -> new CustomerDTO(rs.getString(1), rs.getString(2), rs.getString(3), rs.getDate(4), rs.getString(5)), id));
     customer.ifPresent(cust -> {
-      cust.setAddress(Optional.ofNullable(jdbc.queryForObject(REQ_GET_CUST_ADDR,
-                                                              (rs, rowNum) -> new AddressDTO(rs.getString(7).trim(),
-                                                                                             rs.getString(8),
-                                                                                             rs.getString(9),
-                                                                                             rs.getString(1),
-                                                                                             rs.getString(2),
-                                                                                             rs.getString(3),
-                                                                                             rs.getString(4),
-                                                                                             rs.getString(5),
-                                                                                             rs.getString(6)), id)).orElse(null));
+      cust.setAddress(Optional.ofNullable(jdbc.query(REQ_GET_CUST_ADDR,
+                                                     (rs, rowNum) -> new AddressDTO(rs.getString(7).trim(),
+                                                                                    rs.getString(8),
+                                                                                    rs.getString(9),
+                                                                                    rs.getString(1),
+                                                                                    rs.getString(2),
+                                                                                    rs.getString(3),
+                                                                                    rs.getString(4),
+                                                                                    rs.getString(5),
+                                                                                    rs.getString(6)), id)
+                                          .stream().findFirst().orElse(null))
+                      .orElse(null));
       cust.setPhones(Optional.ofNullable(jdbc.query(REQ_GET_CUST_PHONES, (rs, rowNum) -> new PhoneDTO(rs.getShort(1), rs.getString(2)), id)).orElse(null));
     });
     return customer;

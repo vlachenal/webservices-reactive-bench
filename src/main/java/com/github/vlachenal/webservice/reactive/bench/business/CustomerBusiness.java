@@ -87,8 +87,8 @@ public class CustomerBusiness extends AbstractBusiness {
    *
    * @throws InvalidParametersException missing or invalid parameters
    */
-  public String create(final Mono<CustomerDTO> cust, final UUID uuid) throws InvalidParametersException {
-    cust.doOnNext(customer -> {
+  public Mono<String> create(final Mono<CustomerDTO> cust, final UUID uuid) {
+    return cust.flatMap(customer -> {
       // Customer structure checks +
       checkParameters("Customer is null", customer);
       checkParameters("Customer first_name, last_name and brith_date has to be set", customer.getFirstName(), customer.getLastName(), customer.getBirthDate());
@@ -99,9 +99,8 @@ public class CustomerBusiness extends AbstractBusiness {
         checkParameters("Address lines, zip_code, city and country has to be set", addr.getLines(), addr.getZipCode(), addr.getCity(),addr.getCountry());
       }
       // Address structure checks -
-      dao.create(customer, uuid);
-    }).subscribe();
-    return uuid.toString();
+      return Mono.just(dao.create(customer, uuid));
+    });
   }
 
   /**

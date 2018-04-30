@@ -206,12 +206,6 @@ public class ReactiveJdbcTemplateTest {
     LOG.debug("Enter in testQueryForFlux");
     final boolean checkIds = !uuids.isEmpty();
     jdbc.queryForFlux("SELECT id,first_name,last_name FROM Customer", (rs, rowNum) -> {
-      LOG.info("Wait for 50ms");
-      try {
-        Thread.sleep(50);
-      } catch(final InterruptedException e) {
-        throw new RuntimeException(e.getMessage(), e);
-      }
       LOG.info("Retrieve customer #{} data", rowNum);
       return new CustomerDTO(UUID.fromString(rs.getString(1)), rs.getString(2), rs.getString(3));
     }).doOnNext(cust -> {

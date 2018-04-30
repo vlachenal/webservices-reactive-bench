@@ -37,10 +37,17 @@ public class WebfluxRouter implements WebFluxConfigurer {
    */
   @Bean
   public RouterFunction<ServerResponse> routeCustomer(final CustomerHandler handler) {
-    return RouterFunctions.route(RequestPredicates.GET("/webflux/customer/{id}").and(RequestPredicates.accept(MediaType.APPLICATION_JSON_UTF8)), handler::get)
+    return RouterFunctions.route(RequestPredicates.GET("/webflux/customer/{id}")
+                                 .and(RequestPredicates.accept(MediaType.APPLICATION_JSON_UTF8)),
+                                 handler::get)
         .andNest(RequestPredicates.path("/webflux/customer"),
-                 RouterFunctions.route(RequestPredicates.method(HttpMethod.GET).and(RequestPredicates.accept(MediaType.APPLICATION_JSON_UTF8)), handler::list)
-                 .andRoute(RequestPredicates.method(HttpMethod.POST).and(RequestPredicates.contentType(MediaType.APPLICATION_JSON_UTF8)).and(RequestPredicates.accept(MediaType.TEXT_PLAIN)), handler::create)
+                 RouterFunctions.route(RequestPredicates.method(HttpMethod.GET)
+                                       .and(RequestPredicates.accept(MediaType.APPLICATION_JSON_UTF8).or(RequestPredicates.accept(MediaType.APPLICATION_STREAM_JSON))),
+                                       handler::list)
+                 .andRoute(RequestPredicates.method(HttpMethod.POST)
+                           .and(RequestPredicates.contentType(MediaType.APPLICATION_JSON_UTF8))
+                           .and(RequestPredicates.accept(MediaType.TEXT_PLAIN)),
+                           handler::create)
                  .andRoute(RequestPredicates.method(HttpMethod.DELETE), handler::delete)
             );
   }
@@ -54,8 +61,14 @@ public class WebfluxRouter implements WebFluxConfigurer {
    */
   @Bean
   public RouterFunction<ServerResponse> routeStatistics(final StatisticsHandler handler) {
-    return RouterFunctions.route(RequestPredicates.POST("/webflux/stats").and(RequestPredicates.contentType(MediaType.APPLICATION_JSON_UTF8)).and(RequestPredicates.accept(MediaType.TEXT_PLAIN)), handler::create)
-        .andRoute(RequestPredicates.POST("/webflux/stats/{id}/calls").and(RequestPredicates.contentType(MediaType.APPLICATION_JSON_UTF8)).and(RequestPredicates.accept(MediaType.TEXT_PLAIN)), handler::addCalls);
+    return RouterFunctions.route(RequestPredicates.POST("/webflux/stats")
+                                 .and(RequestPredicates.contentType(MediaType.APPLICATION_JSON_UTF8))
+                                 .and(RequestPredicates.accept(MediaType.TEXT_PLAIN)),
+                                 handler::create)
+        .andRoute(RequestPredicates.POST("/webflux/stats/{id}/calls")
+                  .and(RequestPredicates.contentType(MediaType.APPLICATION_JSON_UTF8).or(RequestPredicates.contentType(MediaType.APPLICATION_STREAM_JSON)))
+                  .and(RequestPredicates.accept(MediaType.TEXT_PLAIN)),
+                  handler::addCalls);
   }
 
 }

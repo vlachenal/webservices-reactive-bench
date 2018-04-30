@@ -130,7 +130,7 @@ public class CustomerHandler {
     final CallDTO call = initializeCall(req.headers().header("request_seq"), "create");
     final UUID uuid = UUID.randomUUID();
     return ServerResponse.created(req.uriBuilder().path("/{id}").build(uuid.toString()))
-        .body(BodyInserters.fromObject(business.create(req.bodyToMono(Customer.class).map(mapstruct.customer()::fromRest), uuid)))
+        .body(BodyInserters.fromPublisher(business.create(req.bodyToMono(Customer.class).map(mapstruct.customer()::fromRest), uuid), String.class))
         .onErrorResume(InvalidParametersException.class, e -> ServerResponse.badRequest().body(BodyInserters.fromObject(e.getMessage())))
         .doFinally(s -> registerCall(call));
   }
