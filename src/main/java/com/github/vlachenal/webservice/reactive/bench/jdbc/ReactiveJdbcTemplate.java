@@ -432,7 +432,6 @@ public class ReactiveJdbcTemplate extends JdbcTemplate {
         }
       }
     }).doFinally(t -> {
-      System.err.println("PLIP");
       if(psc instanceof ParameterDisposer) {
         ((ParameterDisposer)psc).cleanupParameters();
       }

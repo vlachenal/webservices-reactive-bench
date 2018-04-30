@@ -82,10 +82,9 @@ public class CustomerHandler {
       }
     }
     if(seq != -1) {
-      final long start = System.nanoTime();
       call = new CallDTO();
       call.setSeq(seq);
-      call.setServerStart(start);
+      call.setServerStart(System.nanoTime());
       call.setProtocol("webflux");
       call.setMethod(method);
     }
