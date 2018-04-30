@@ -64,7 +64,7 @@ public class StatisticsHandler {
   public Mono<ServerResponse> create(final ServerRequest req) {
     final UUID uuid = UUID.randomUUID();
     return ServerResponse.created(req.uriBuilder().path("/{id}").build(uuid.toString()))
-        .body(BodyInserters.fromObject(business.consolidate(req.bodyToMono(TestSuite.class).map(mapstruct.suite()::fromRest), uuid)))
+        .body(BodyInserters.fromPublisher(business.consolidate(req.bodyToMono(TestSuite.class).map(mapstruct.suite()::fromRest), uuid), String.class))
         .onErrorResume(InvalidParametersException.class, e -> ServerResponse.badRequest().body(BodyInserters.fromObject(e.getMessage())));
   }
 

@@ -69,8 +69,8 @@ public class StatisticsBusiness extends AbstractBusiness {
    *
    * @throws InvalidParametersException missing or invalid parameters
    */
-  public String consolidate(final Mono<TestSuiteDTO> testSuite, final UUID uuid) throws InvalidParametersException {
-    testSuite.doOnNext(suite -> {
+  public Mono<String> consolidate(final Mono<TestSuiteDTO> testSuite, final UUID uuid) throws InvalidParametersException {
+    return testSuite.flatMap(suite -> {
       checkParameters("Test suite is null", suite);
       checkParameters("Invalid test suite information", suite.getClientCpu(), suite.getClientMemory(), suite.getClientJvmVersion(), suite.getClientJvmVendor(), suite.getClientOsName(), suite.getClientOsVersion());
 
@@ -87,9 +87,8 @@ public class StatisticsBusiness extends AbstractBusiness {
       suite.setServerMemory(memory);
       // Gather system informations -
 
-      dao.save(suite, uuid);
-    }).subscribe();
-    return uuid.toString();
+      return Mono.just(dao.save(suite, uuid));
+    });
   }
 
   /**
