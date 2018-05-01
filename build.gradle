@@ -86,6 +86,8 @@ dependencies {
     // MapStruct
     compile "org.mapstruct:mapstruct-jdk8:${mapstructVersion}"
     annotationProcessor "org.mapstruct:mapstruct-processor:${mapstructVersion}"
+    // Dozer
+    compile 'com.github.dozermapper:dozer-core:6.2.0'
     // tests
     testCompile 'org.springframework.boot:spring-boot-starter-test'
     testCompile 'io.projectreactor:reactor-test'
