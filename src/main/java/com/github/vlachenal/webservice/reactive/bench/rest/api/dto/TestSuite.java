@@ -67,6 +67,7 @@ public class TestSuite {
   @JsonProperty(value="calls",required=true)
   private List<ClientCall> calls;
 
+  /** Mapper */
   @JsonProperty(value="mapper")
   private Mapper mapper;
   // Attributes -

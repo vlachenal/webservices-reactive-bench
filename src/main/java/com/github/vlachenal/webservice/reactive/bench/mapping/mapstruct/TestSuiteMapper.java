@@ -59,9 +59,16 @@ public interface TestSuiteMapper {
    * @return the string
    */
   default String fromRest(final com.github.vlachenal.webservice.reactive.bench.rest.api.dto.Mapper mapper) {
-    String str = null;
-    if(mapper != null) {
-      str = mapper.name().toLowerCase();
+    String str = "manual";
+    switch(mapper) {
+      case DOZER:
+        str = "dozer";
+        break;
+      case MAPSTRUCT:
+        str = "mapstruct";
+        break;
+      default:
+        // Nothing to do => manual
     }
     return str;
   }

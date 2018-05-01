@@ -18,8 +18,10 @@ import org.springframework.web.reactive.function.server.ServerResponse;
 import com.github.vlachenal.webservice.reactive.bench.business.CustomerBusiness;
 import com.github.vlachenal.webservice.reactive.bench.cache.StatisticsCache;
 import com.github.vlachenal.webservice.reactive.bench.dto.CallDTO;
+import com.github.vlachenal.webservice.reactive.bench.dto.CustomerDTO;
 import com.github.vlachenal.webservice.reactive.bench.errors.InvalidParametersException;
 import com.github.vlachenal.webservice.reactive.bench.errors.NotFoundException;
+import com.github.vlachenal.webservice.reactive.bench.mapping.manual.CustomerBridge;
 import com.github.vlachenal.webservice.reactive.bench.mapping.mapstruct.MapStructMappers;
 import com.github.vlachenal.webservice.reactive.bench.rest.api.dto.Customer;
 
@@ -38,6 +40,9 @@ public class CustomerHandler {
   /** Customer business */
   private final CustomerBusiness business;
 
+  /** Dozer mapper */
+  private final org.dozer.Mapper dozer;
+
   /** MapStruct mappers */
   private final MapStructMappers mapstruct;
 
@@ -51,18 +56,71 @@ public class CustomerHandler {
    * {@link CustomerHandler} constructor
    *
    * @param business the customer business to use
+   * @param dozer the Dozer mapper to use
    * @param mapstruct the MapStruct mappers to use
    * @param stats the statistics cache to use
    */
-  public CustomerHandler(final CustomerBusiness business, final MapStructMappers mapstruct, final StatisticsCache stats) {
+  public CustomerHandler(final CustomerBusiness business,
+                         final org.dozer.Mapper dozer,
+                         final MapStructMappers mapstruct,
+                         final StatisticsCache stats) {
     this.business = business;
     this.mapstruct = mapstruct;
     this.stats = stats;
+    this.dozer = dozer;
   }
   // Constructors -
 
 
   // Methods +
+  /**
+   * Convert customer DTO to REST according to mapper
+   *
+   * @param dto the customer DTO
+   * @param mapper the mapper
+   *
+   * @return the REST customer
+   */
+  private Customer toRest(final CustomerDTO dto, final List<String> mapper) {
+    Customer customer = null;
+    final String map = (mapper == null || mapper.isEmpty()) ? "" : mapper.get(0);
+    switch(map) {
+      case "dozer":
+        customer = dozer.map(dto, Customer.class);
+        break;
+      case "mapstruct":
+        customer = mapstruct.customer().toRest(dto);
+        break;
+      default:
+        customer = CustomerBridge.toRest(dto);
+    }
+    return customer;
+  }
+
+  /**
+   * Convert REST customer to DTO according to mapper
+   *
+   * @param customer the REST customer
+   * @param mapper the mapper
+   *
+   * @return the customer DTO
+   */
+  private CustomerDTO fromRest(final Customer customer, final List<String> mapper) {
+    CustomerDTO dto = null;
+    final String map = (mapper == null || mapper.isEmpty()) ? "" : mapper.get(0);
+    switch(map) {
+      case "dozer":
+        dto = dozer.map(customer, CustomerDTO.class);
+        break;
+      case "mapstruct":
+        dto = mapstruct.customer().fromRest(customer);
+        break;
+      default:
+        dto = CustomerBridge.fromRest(customer);
+    }
+    return dto;
+  }
+
   /**
    * Initialize call
    *
@@ -112,7 +170,7 @@ public class CustomerHandler {
    */
   public Mono<ServerResponse> get(final ServerRequest req) {
     final CallDTO call = initializeCall(req.headers().header("request_seq"), "get");
-    return ServerResponse.ok().contentType(MediaType.APPLICATION_JSON).body(BodyInserters.fromObject(mapstruct.customer().toRest(business.getDetails(req.pathVariable("id")))))
+    return ServerResponse.ok().contentType(MediaType.APPLICATION_JSON).body(BodyInserters.fromObject(toRest(business.getDetails(req.pathVariable("id")), req.headers().header("mapper"))))
         .onErrorResume(InvalidParametersException.class, e -> ServerResponse.badRequest().body(BodyInserters.fromObject(e.getMessage())))
         .onErrorResume(NotFoundException.class, e -> ServerResponse.notFound().build())
         .doFinally(s -> registerCall(call));
@@ -129,7 +187,7 @@ public class CustomerHandler {
     final CallDTO call = initializeCall(req.headers().header("request_seq"), "create");
     final UUID uuid = UUID.randomUUID();
     return ServerResponse.created(req.uriBuilder().path("/{id}").build(uuid.toString()))
-        .body(BodyInserters.fromPublisher(business.create(req.bodyToMono(Customer.class).map(mapstruct.customer()::fromRest), uuid), String.class))
+        .body(BodyInserters.fromPublisher(business.create(req.bodyToMono(Customer.class).map(c -> fromRest(c, req.headers().header("mapper"))), uuid), String.class))
         .onErrorResume(InvalidParametersException.class, e -> ServerResponse.badRequest().body(BodyInserters.fromObject(e.getMessage())))
         .doFinally(s -> registerCall(call));
   }
@@ -143,7 +201,7 @@ public class CustomerHandler {
    */
   public Mono<ServerResponse> list(final ServerRequest req) {
     final CallDTO call = initializeCall(req.headers().header("request_seq"), "list");
-    return ServerResponse.ok().contentType(MediaType.APPLICATION_JSON).body(business.listAll().map(mapstruct.customer()::toRest), Customer.class)
+    return ServerResponse.ok().contentType(MediaType.APPLICATION_JSON).body(business.listAll().map(c -> toRest(c, req.headers().header("mapper"))), Customer.class)
         .doFinally(s -> registerCall(call));
   }
 
