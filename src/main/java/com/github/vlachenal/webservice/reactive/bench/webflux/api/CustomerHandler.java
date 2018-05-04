@@ -9,6 +9,7 @@ package com.github.vlachenal.webservice.reactive.bench.webflux.api;
 import java.util.List;
 import java.util.UUID;
 
+import org.dozer.Mapper;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.BodyInserters;
@@ -41,7 +42,7 @@ public class CustomerHandler {
   private final CustomerBusiness business;
 
   /** Dozer mapper */
-  private final org.dozer.Mapper dozer;
+  private final Mapper dozer;
 
   /** MapStruct mappers */
   private final MapStructMappers mapstruct;
@@ -61,7 +62,7 @@ public class CustomerHandler {
    * @param stats the statistics cache to use
    */
   public CustomerHandler(final CustomerBusiness business,
-                         final org.dozer.Mapper dozer,
+                         final Mapper dozer,
                          final MapStructMappers mapstruct,
                          final StatisticsCache stats) {
     this.business = business;
