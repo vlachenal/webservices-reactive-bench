@@ -20,7 +20,7 @@ Waiting for test result but it is certainly (by design) more performant than blo
 
 ### Disadvantages
 
-Reactive programming to be taken into account in the service architecture. Changing from blocking implementation and reactive could be painfull.
+Reactive programming to be taken into account in the service architecture. Changing from blocking implementation to reactive could be painfull.
 
 spring-jdbc does not have reactive part: I implements class which extends JdbcTemplate and which manage flux but I am not sure it is really reactive (depends on JDBC implementations).
 
