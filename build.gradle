@@ -36,10 +36,10 @@ configurations {
 eclipse {
     wtp {
         facet {
-            facet name: 'jst.java', version: '9'
-            facet name: 'jst.web', version: '3.1'
+            facet name: 'jst.java', version: '10'
+            facet name: 'jst.web', version: '4.0'
             def oldJstWebFacet = facets.findAll {
-                it.name == 'jst.web' && it.version == '2.4' || it.name == 'jst.java' && it.version == '1.8' || it.name == 'jst.java' && it.version == '1.9'
+                it.name == 'jst.web' && it.version == '2.4' || it.name == 'jst.java' && it.version == '1.8' || it.name == 'jst.java' && it.version == '1.9' || it.name == 'jst.java' && it.version == '1.10'
             }
             facets.removeAll(oldJstWebFacet)
         }
@@ -55,11 +55,11 @@ repositories {
     mavenCentral()
 }
 
-sourceCompatibility = 9
-targetCompatibility = 9
+sourceCompatibility = 10
+targetCompatibility = 10
 
 allprojects {
-    sourceCompatibility = 9
+    sourceCompatibility = 10
     eclipse.project {
         natures 'org.eclipse.buildship.core.gradleprojectnature'
     }
