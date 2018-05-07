@@ -51,6 +51,10 @@ jar {
     version =  '0.1.0'
 }
 
+bootRun {
+    jvmArgs = ['--add-modules','java.xml.bind,java.xml.ws']
+}
+
 repositories {
     mavenCentral()
 }
