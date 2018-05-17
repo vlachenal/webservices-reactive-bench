@@ -9,7 +9,7 @@ package com.github.vlachenal.webservice.reactive.bench.mapping.mapstruct;
 import org.mapstruct.Mapper;
 
 import com.github.vlachenal.webservice.reactive.bench.dto.CustomerDTO;
-import com.github.vlachenal.webservice.reactive.bench.rest.api.dto.Customer;
+import com.github.vlachenal.webservice.reactive.bench.rest.api.model.Customer;
 
 
 /**

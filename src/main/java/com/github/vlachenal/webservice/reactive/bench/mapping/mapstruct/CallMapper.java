@@ -11,7 +11,7 @@ import org.mapstruct.Mapping;
 import org.mapstruct.Mappings;
 
 import com.github.vlachenal.webservice.reactive.bench.dto.CallDTO;
-import com.github.vlachenal.webservice.reactive.bench.rest.api.dto.ClientCall;
+import com.github.vlachenal.webservice.reactive.bench.rest.api.model.ClientCall;
 
 
 /**

@@ -11,7 +11,7 @@ import org.mapstruct.Mapping;
 import org.mapstruct.Mappings;
 
 import com.github.vlachenal.webservice.reactive.bench.dto.TestSuiteDTO;
-import com.github.vlachenal.webservice.reactive.bench.rest.api.dto.TestSuite;
+import com.github.vlachenal.webservice.reactive.bench.rest.api.model.TestSuite;
 
 
 /**
@@ -58,7 +58,7 @@ public interface TestSuiteMapper {
    *
    * @return the string
    */
-  default String fromRest(final com.github.vlachenal.webservice.reactive.bench.rest.api.dto.Mapper mapper) {
+  default String fromRest(final com.github.vlachenal.webservice.reactive.bench.rest.api.model.Mapper mapper) {
     String str = "manual";
     switch(mapper) {
       case DOZER:

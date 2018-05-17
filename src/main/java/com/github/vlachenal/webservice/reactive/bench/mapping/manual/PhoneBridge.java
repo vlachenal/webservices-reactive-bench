@@ -11,7 +11,7 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 import com.github.vlachenal.webservice.reactive.bench.dto.PhoneDTO;
-import com.github.vlachenal.webservice.reactive.bench.rest.api.dto.Phone;
+import com.github.vlachenal.webservice.reactive.bench.rest.api.model.Phone;
 
 
 /**

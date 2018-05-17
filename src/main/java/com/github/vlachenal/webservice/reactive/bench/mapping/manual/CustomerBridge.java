@@ -7,7 +7,7 @@
 package com.github.vlachenal.webservice.reactive.bench.mapping.manual;
 
 import com.github.vlachenal.webservice.reactive.bench.dto.CustomerDTO;
-import com.github.vlachenal.webservice.reactive.bench.rest.api.dto.Customer;
+import com.github.vlachenal.webservice.reactive.bench.rest.api.model.Customer;
 
 
 /**

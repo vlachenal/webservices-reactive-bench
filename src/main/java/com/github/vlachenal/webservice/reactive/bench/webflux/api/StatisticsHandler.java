@@ -17,8 +17,8 @@ import com.github.vlachenal.webservice.reactive.bench.business.StatisticsBusines
 import com.github.vlachenal.webservice.reactive.bench.cache.StatisticsCache;
 import com.github.vlachenal.webservice.reactive.bench.errors.InvalidParametersException;
 import com.github.vlachenal.webservice.reactive.bench.mapping.mapstruct.MapStructMappers;
-import com.github.vlachenal.webservice.reactive.bench.rest.api.dto.ClientCall;
-import com.github.vlachenal.webservice.reactive.bench.rest.api.dto.TestSuite;
+import com.github.vlachenal.webservice.reactive.bench.rest.api.model.ClientCall;
+import com.github.vlachenal.webservice.reactive.bench.rest.api.model.TestSuite;
 
 import reactor.core.publisher.Mono;
 

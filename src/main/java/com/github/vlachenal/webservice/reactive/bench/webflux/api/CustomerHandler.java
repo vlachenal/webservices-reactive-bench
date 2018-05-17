@@ -24,7 +24,7 @@ import com.github.vlachenal.webservice.reactive.bench.errors.InvalidParametersEx
 import com.github.vlachenal.webservice.reactive.bench.errors.NotFoundException;
 import com.github.vlachenal.webservice.reactive.bench.mapping.manual.CustomerBridge;
 import com.github.vlachenal.webservice.reactive.bench.mapping.mapstruct.MapStructMappers;
-import com.github.vlachenal.webservice.reactive.bench.rest.api.dto.Customer;
+import com.github.vlachenal.webservice.reactive.bench.rest.api.model.Customer;
 
 import reactor.core.publisher.Mono;
 
