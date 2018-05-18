@@ -118,7 +118,7 @@ public class CustomerDAO {
                                                                                     rs.getString(6)), id)
                                           .stream().findFirst().orElse(null))
                       .orElse(null));
-      cust.setPhones(Optional.ofNullable(jdbc.query(REQ_GET_CUST_PHONES, (rs, rowNum) -> new PhoneDTO(rs.getShort(1), rs.getString(2)), id)).orElse(null));
+      cust.setPhones(jdbc.query(REQ_GET_CUST_PHONES, (rs, rowNum) -> new PhoneDTO(rs.getShort(1), rs.getString(2)), id));
     });
     return customer;
   }
