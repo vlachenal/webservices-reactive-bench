@@ -58,13 +58,13 @@ public class CustomerDAO {
 
   /** Insert phone in database */
   private static final String ADD_ADDRESS = "INSERT INTO address "
-      + "(customer_id,line1,line2,line3,line4,line5,line6,zip_code,city,country) "
-      + "VALUES (?,?,?,?,?,?,?,?,?,?)";
+      + "(customer_id,line1,line2,line3,line4,line5,line6,zip_code,city,country,id) "
+      + "VALUES (?,?,?,?,?,?,?,?,?,?,?)";
 
   /** Insert phone in database */
   private static final String ADD_PHONE = "INSERT INTO phone "
-      + "(customer_id,phone_type,number) "
-      + "VALUES (?,?,?)";
+      + "(customer_id,phone_type,number,id) "
+      + "VALUES (?,?,?,?)";
 
   /** Vacuum requests */
   @Value("${ds.customer.vacuum}")
@@ -166,13 +166,15 @@ public class CustomerDAO {
                   getLine(address.getLines(),5),
                   address.getZipCode(),
                   address.getCity(),
-                  address.getCountry());
+                  address.getCountry(),
+                  UUID.randomUUID());
     });
     if(customer.getPhones() != null && !customer.getPhones().isEmpty()) {
       jdbc.batchUpdate(ADD_PHONE, customer.getPhones(), 250, (ps, phone) -> {
         ps.setObject(1, uuid);
         ps.setShort(2, phone.getType().getCode());
         ps.setString(3, phone.getNumber());
+        ps.setObject(4, UUID.randomUUID());
       });
     }
     return uuid.toString();

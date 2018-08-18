@@ -14,7 +14,7 @@ CREATE TABLE IF NOT EXISTS Customer (
 );
 
 CREATE TABLE IF NOT EXISTS Address (
-    id SERIAL PRIMARY KEY,
+    id UUID PRIMARY KEY,
     customer_id UUID NOT NULL REFERENCES Customer(id) ON DELETE CASCADE,
     line1 VARCHAR(256) NOT NULL,
     line2 VARCHAR(256),
@@ -28,7 +28,7 @@ CREATE TABLE IF NOT EXISTS Address (
 );
 
 CREATE TABLE IF NOT EXISTS Phone (
-    id SERIAL PRIMARY KEY,
+    id UUID PRIMARY KEY,
     customer_id UUID NOT NULL REFERENCES Customer(id) ON DELETE CASCADE,
     phone_type SMALLINT,
     number CHAR(32)
@@ -52,7 +52,7 @@ CREATE TABLE IF NOT EXISTS TestSuite (
     compression CHAR(8),
     nb_threads INTEGER NOT NULL,
     comment VARCHAR(1024),
-    mapper CHAR(16) NOT NULL
+    mapper CHAR(16) NOT NULL DEFAULT 'manual'
 );
 
 CREATE TABLE IF NOT EXISTS TestCall (
