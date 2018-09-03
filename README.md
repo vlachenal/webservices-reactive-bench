@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/vlachenal/webservices-reactive-bench.svg?branch=master)](https://travis-ci.org/vlachenal/webservices-reactive-bench)
+[![Build Status](https://travis-ci.org/vlachenal/webservices-reactive-bench.svg?branch=master)](https://travis-ci.org/vlachenal/webservices-reactive-bench) [![Maintainability](https://api.codeclimate.com/v1/badges/c03d97f0e050d5598ad2/maintainability)](https://codeclimate.com/github/vlachenal/webservices-reactive-bench/maintainability)
 
 # webservices-reactive-bench
 
