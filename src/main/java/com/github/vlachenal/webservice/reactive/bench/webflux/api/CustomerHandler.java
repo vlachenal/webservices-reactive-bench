@@ -9,13 +9,13 @@ package com.github.vlachenal.webservice.reactive.bench.webflux.api;
 import java.util.List;
 import java.util.UUID;
 
-import org.dozer.Mapper;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.BodyInserters;
 import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.reactive.function.server.ServerResponse;
 
+import com.github.dozermapper.core.Mapper;
 import com.github.vlachenal.webservice.reactive.bench.business.CustomerBusiness;
 import com.github.vlachenal.webservice.reactive.bench.cache.StatisticsCache;
 import com.github.vlachenal.webservice.reactive.bench.dto.CallDTO;

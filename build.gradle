@@ -1,16 +1,16 @@
 buildscript {
-    ext {
-        springBootVersion = '2.0.4.RELEASE'
-    }
-    repositories {
-        jcenter()
-        mavenCentral()
-        maven { url "https://plugins.gradle.org/m2/" }
-    }
-    dependencies {
-        classpath("org.springframework.boot:spring-boot-gradle-plugin:${springBootVersion}")
-        classpath("net.ltgt.gradle:gradle-apt-plugin:0.14")
-    }
+  ext {
+    springBootVersion = '2.0.6.RELEASE'
+  }
+  repositories {
+    jcenter()
+    mavenCentral()
+    maven { url "https://plugins.gradle.org/m2/" }
+  }
+  dependencies {
+    classpath("org.springframework.boot:spring-boot-gradle-plugin:${springBootVersion}")
+    classpath("net.ltgt.gradle:gradle-apt-plugin:0.14")
+  }
 }
 
 apply plugin: 'java'
@@ -22,78 +22,78 @@ apply plugin: 'war'
 apply plugin: 'net.ltgt.apt'
 
 war {
-    enabled = true
+  enabled = true
 }
 
 ext {
-    mapstructVersion = "1.2.0.Final"
+  mapstructVersion = "1.2.0.Final"
 }
 
 configurations {
-    mapstruct
+  mapstruct
 }
 
 eclipse {
-    wtp {
-        facet {
-            facet name: 'jst.java', version: '10'
-            facet name: 'jst.web', version: '4.0'
-            def oldJstWebFacet = facets.findAll {
-                it.name == 'jst.web' && it.version == '2.4' || it.name == 'jst.java' && it.version == '1.8' || it.name == 'jst.java' && it.version == '1.9' || it.name == 'jst.java' && it.version == '1.10'
-            }
-            facets.removeAll(oldJstWebFacet)
-        }
+  wtp {
+    facet {
+      facet name: 'jst.java', version: '10'
+      facet name: 'jst.web', version: '4.0'
+      def oldJstWebFacet = facets.findAll {
+        it.name == 'jst.web' && it.version == '2.4' || it.name == 'jst.java' && it.version == '1.8' || it.name == 'jst.java' && it.version == '1.9' || it.name == 'jst.java' && it.version == '1.10'
+      }
+      facets.removeAll(oldJstWebFacet)
     }
+  }
 }
 
 jar {
-    baseName = 'webservices-reactive-bench'
-    version =  '0.1.0'
+  baseName = 'webservices-reactive-bench'
+  version =  '0.1.0'
 }
 
 bootRun {
-    jvmArgs = ['--add-modules','java.xml.bind,java.xml.ws']
+  jvmArgs = ['--add-modules','java.xml.bind,java.xml.ws']
 }
 
 repositories {
-    mavenCentral()
+  mavenCentral()
 }
 
 sourceCompatibility = 10
 targetCompatibility = 10
 
 allprojects {
-    sourceCompatibility = 10
-    eclipse.project {
-        natures 'org.eclipse.buildship.core.gradleprojectnature'
-    }
-    // Allows to run JUnit tests in Eclipse and have compilation warning for Mapstruct +
-    project.plugins.withId("net.ltgt.apt") {
-        // automatically apply net.ltgt.apt-eclipse whenever net.ltgt.apt is used
-        project.apply plugin: "net.ltgt.apt-eclipse"
-    }
-    // Allows to run JUnit tests in Eclipse and have compilation warning for Mapstruct -
+  sourceCompatibility = 10
+  eclipse.project {
+    natures 'org.eclipse.buildship.core.gradleprojectnature'
+  }
+  // Allows to run JUnit tests in Eclipse and have compilation warning for Mapstruct +
+  project.plugins.withId("net.ltgt.apt") {
+    // automatically apply net.ltgt.apt-eclipse whenever net.ltgt.apt is used
+    project.apply plugin: "net.ltgt.apt-eclipse"
+  }
+  // Allows to run JUnit tests in Eclipse and have compilation warning for Mapstruct -
 }
 
 tasks.withType(JavaCompile) {
-    options.compilerArgs = [
-            '-Amapstruct.suppressGeneratorTimestamp=true'
-    ]
+  options.compilerArgs = [
+          '-Amapstruct.suppressGeneratorTimestamp=true'
+  ]
 }
 
 dependencies {
-    // REST
-    compile 'org.springframework.boot:spring-boot-starter-webflux'
-    // SQL
-    compile 'org.springframework.boot:spring-boot-starter-jdbc'
-    compile 'org.postgresql:postgresql:42.2.2'
-    // MapStruct
-    compile "org.mapstruct:mapstruct-jdk8:${mapstructVersion}"
-    annotationProcessor "org.mapstruct:mapstruct-processor:${mapstructVersion}"
-    // Dozer
-    compile 'com.github.dozermapper:dozer-core:6.2.0'
-    // tests
-    testCompile 'org.springframework.boot:spring-boot-starter-test'
-    testCompile 'io.projectreactor:reactor-test'
-    testCompile 'org.hsqldb:hsqldb:2.4.0'
+  // REST
+  compile 'org.springframework.boot:spring-boot-starter-webflux'
+  // SQL
+  compile 'org.springframework.boot:spring-boot-starter-jdbc'
+  compile 'org.postgresql:postgresql:42.2.2'
+  // MapStruct
+  compile "org.mapstruct:mapstruct-jdk8:${mapstructVersion}"
+  annotationProcessor "org.mapstruct:mapstruct-processor:${mapstructVersion}"
+  // Dozer
+  compile 'com.github.dozermapper:dozer-core:6.4.1'
+  // tests
+  testCompile 'org.springframework.boot:spring-boot-starter-test'
+  testCompile 'io.projectreactor:reactor-test'
+  testCompile 'org.hsqldb:hsqldb:2.4.0'
 }
