@@ -1,6 +1,6 @@
 buildscript {
   ext {
-    springBootVersion = '2.0.6.RELEASE'
+    springBootVersion = '2.1.1.RELEASE'
   }
   repositories {
     jcenter()
@@ -36,7 +36,7 @@ configurations {
 eclipse {
   wtp {
     facet {
-      facet name: 'jst.java', version: '10'
+      facet name: 'jst.java', version: '11'
       facet name: 'jst.web', version: '4.0'
       def oldJstWebFacet = facets.findAll {
         it.name == 'jst.web' && it.version == '2.4' || it.name == 'jst.java' && it.version == '1.8' || it.name == 'jst.java' && it.version == '1.9' || it.name == 'jst.java' && it.version == '1.10'
@@ -59,11 +59,11 @@ repositories {
   mavenCentral()
 }
 
-sourceCompatibility = 10
-targetCompatibility = 10
+sourceCompatibility = 11
+targetCompatibility = 11
 
 allprojects {
-  sourceCompatibility = 10
+  sourceCompatibility = 11
   eclipse.project {
     natures 'org.eclipse.buildship.core.gradleprojectnature'
   }
