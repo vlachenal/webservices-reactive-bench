@@ -1,6 +1,6 @@
 buildscript {
   ext {
-    springBootVersion = '2.1.1.RELEASE'
+    springBootVersion = '2.1.4.RELEASE'
   }
   repositories {
     jcenter()
@@ -26,7 +26,7 @@ war {
 }
 
 ext {
-  mapstructVersion = "1.2.0.Final"
+  mapstructVersion = "1.3.0.Final"
 }
 
 configurations {
@@ -86,7 +86,7 @@ dependencies {
   compile 'org.springframework.boot:spring-boot-starter-webflux'
   // SQL
   compile 'org.springframework.boot:spring-boot-starter-jdbc'
-  compile 'org.postgresql:postgresql:42.2.2'
+  compile 'org.postgresql:postgresql:42.2.5'
   // MapStruct
   compile "org.mapstruct:mapstruct-jdk8:${mapstructVersion}"
   annotationProcessor "org.mapstruct:mapstruct-processor:${mapstructVersion}"
